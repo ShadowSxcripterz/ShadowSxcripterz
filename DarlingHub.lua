@@ -1,138 +1,158 @@
+-- Darling Hub UI Script (Updated with centered fade, responsive icon, outlined buttons, draggable icon, and pop animation)
+
+-- Services
 local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local PlayerGui = player:WaitForChild("PlayerGui")
+local UserInputService = game:GetService("UserInputService")
 
--- Remove previous GUI if exists
-if PlayerGui:FindFirstChild("DarlingHub") then
-	PlayerGui.DarlingHub:Destroy()
-end
+-- Main UI
+local screenGui = Instance.new("ScreenGui", game.CoreGui)
+screenGui.Name = "DarlingHubUI"
 
--- Create UI
-local screenGui = Instance.new("ScreenGui", PlayerGui)
-screenGui.Name = "DarlingHub"
-screenGui.ResetOnSpawn = false
-
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 350, 0, 300)
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -150)
-mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-mainFrame.BackgroundTransparency = 0.25
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 360, 0, 230)
+mainFrame.Position = UDim2.new(0.5, -180, 0.5, -115)
 mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true
-
--- UICorner for rounded corners
-local corner = Instance.new("UICorner", mainFrame)
-corner.CornerRadius = UDim.new(0, 10)
+mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+mainFrame.BackgroundTransparency = 0.3
+mainFrame.Visible = false
+mainFrame.Parent = screenGui
 
 -- Title
 local title = Instance.new("TextLabel", mainFrame)
-title.Text = "DarlingHub"
 title.Size = UDim2.new(1, 0, 0, 40)
 title.BackgroundTransparency = 1
+title.Text = "Darling Hub"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 24
+title.TextSize = 26
 
--- Close Button (X)
+-- Close button
 local closeBtn = Instance.new("TextButton", mainFrame)
-closeBtn.Text = "X"
 closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(0, 10, 0, 5)
+closeBtn.Position = UDim2.new(0, 5, 0, 5)
+closeBtn.Text = "X"
 closeBtn.BackgroundTransparency = 1
 closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeBtn.Font = Enum.Font.GothamBold
+closeBtn.Font = Enum.Font.Gotham
 closeBtn.TextSize = 20
 
--- Icon placeholder (Zero Two Icon)
+-- Feature Buttons
+local features = {"Fly", "No Clip", "PartName"}
+for i, feature in ipairs(features) do
+	local btn = Instance.new("TextLabel", mainFrame)
+	btn.Size = UDim2.new(0, 200, 0, 30)
+	btn.Position = UDim2.new(0.5, -100, 0, 40 + (i * 40))
+	btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	btn.BackgroundTransparency = 0.4
+	btn.BorderColor3 = Color3.fromRGB(255, 0, 0)
+	btn.BorderSizePixel = 1
+	btn.Text = feature
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.Gotham
+	btn.TextSize = 16
+end
+
+-- Icon Button
 local iconBtn = Instance.new("TextButton", screenGui)
-iconBtn.Size = UDim2.new(0, 60, 0, 60)
-iconBtn.Position = UDim2.new(0, 20, 1, -80)
-iconBtn.AnchorPoint = Vector2.new(0, 1)
-iconBtn.BackgroundColor3 = Color3.fromRGB(255, 192, 203)
-iconBtn.Text = ""
-iconBtn.Visible = false
+iconBtn.Size = UDim2.new(0, 50, 0, 50)
+iconBtn.Position = UDim2.new(0, 20, 1, -70)
+iconBtn.Text = "Z"
+iconBtn.BackgroundColor3 = Color3.fromRGB(255, 105, 180) -- Pink
+iconBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+iconBtn.Font = Enum.Font.GothamBlack
+iconBtn.TextSize = 24
+iconBtn.Visible = true
 iconBtn.AutoButtonColor = false
-local iconCorner = Instance.new("UICorner", iconBtn)
-iconCorner.CornerRadius = UDim.new(1, 0)
 
--- Feature Button Factory
-local function createFeatureButton(text, posY)
-	local btnFrame = Instance.new("Frame", mainFrame)
-	btnFrame.Size = UDim2.new(1, -40, 0, 40)
-	btnFrame.Position = UDim2.new(0, 20, 0, posY)
-	btnFrame.BackgroundTransparency = 1
+-- Draggable Icon
+local dragging, dragInput, dragStart, startPos
 
-	local outline = Instance.new("Frame", btnFrame)
-	outline.Size = UDim2.new(1, 0, 1, 0)
-	outline.Position = UDim2.new(0, 0, 0, 0)
-	outline.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-	outline.BackgroundTransparency = 0.7
-	outline.BorderSizePixel = 0
+iconBtn.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = iconBtn.Position
 
-	local outlineCorner = Instance.new("UICorner", outline)
-	outlineCorner.CornerRadius = UDim.new(0, 6)
-
-	local label = Instance.new("TextLabel", outline)
-	label.Text = text
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.BackgroundTransparency = 1
-	label.TextColor3 = Color3.fromRGB(255, 255, 255)
-	label.Font = Enum.Font.Gotham
-	label.TextSize = 18
-end
-
--- Create Feature Buttons
-createFeatureButton("Fly", 60)
-createFeatureButton("No Clip", 110)
-createFeatureButton("PartName", 160)
-
--- Smooth Fade-Out to Icon
-local function hideUI()
-	local targetPos = iconBtn.AbsolutePosition
-	local screenSize = workspace.CurrentCamera.ViewportSize
-	local scalePos = UDim2.new(0, targetPos.X, 0, targetPos.Y)
-
-	local tweenOut = TweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-		Size = UDim2.new(0, 0, 0, 0),
-		Position = UDim2.new(0, targetPos.X, 0, targetPos.Y)
-	})
-	tweenOut:Play()
-
-	tweenOut.Completed:Connect(function()
-		mainFrame.Visible = false
-		iconBtn.Visible = true
-
-		-- Hentak Animation
-		iconBtn:TweenSize(UDim2.new(0, 70, 0, 70), "Out", "Back", 0.2, true, function()
-			iconBtn:TweenSize(UDim2.new(0, 60, 0, 60), "Out", "Quad", 0.2)
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
 		end)
-	end)
-end
-
-closeBtn.MouseButton1Click:Connect(hideUI)
-
--- Show UI from Icon
-iconBtn.MouseButton1Click:Connect(function()
-	iconBtn.Visible = false
-	mainFrame.Position = UDim2.new(0.5, -175, 0.5, -150)
-	mainFrame.Size = UDim2.new(0, 0, 0, 0)
-	mainFrame.Visible = true
-
-	local tweenIn = TweenService:Create(mainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Size = UDim2.new(0, 350, 0, 300),
-		Position = UDim2.new(0.5, -175, 0.5, -150)
-	})
-	tweenIn:Play()
+	end
 end)
 
--- Initial Pop Animation
-mainFrame.Size = UDim2.new(0, 0, 0, 0)
-mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-mainFrame.Visible = true
-TweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-	Size = UDim2.new(0, 350, 0, 300),
-	Position = UDim2.new(0.5, -175, 0.5, -150)
-}):Play()
+iconBtn.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		iconBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+-- Animations
+local function animateToIcon(fromFrame, toIcon)
+	local iconPos = toIcon.AbsolutePosition
+	local framePos = fromFrame.AbsolutePosition
+	local offset = UDim2.new(0, iconPos.X - framePos.X, 0, iconPos.Y - framePos.Y)
+
+	local tween = TweenService:Create(fromFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+		Size = UDim2.new(0, 50, 0, 50),
+		Position = UDim2.new(0, iconPos.X, 0, iconPos.Y)
+	})
+	tween:Play()
+	tween.Completed:Wait()
+	fromFrame.Visible = false
+end
+
+local function animateFromIcon(toFrame, fromIcon)
+	local iconPos = fromIcon.AbsolutePosition
+	toFrame.Size = UDim2.new(0, 50, 0, 50)
+	toFrame.Position = UDim2.new(0, iconPos.X, 0, iconPos.Y)
+	toFrame.Visible = true
+
+	local tween = TweenService:Create(toFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 360, 0, 230),
+		Position = UDim2.new(0.5, -180, 0.5, -115)
+	})
+	tween:Play()
+	tween.Completed:Wait()
+end
+
+-- Button Logic
+closeBtn.MouseButton1Click:Connect(function()
+	animateToIcon(mainFrame, iconBtn)
+	iconBtn.Visible = true
+
+	-- Pop animation
+	local pop = TweenService:Create(iconBtn, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 60, 0, 60)
+	})
+	local back = TweenService:Create(iconBtn, TweenInfo.new(0.15), {
+		Size = UDim2.new(0, 50, 0, 50)
+	})
+	pop:Play()
+	pop.Completed:Wait()
+	back:Play()
+end)
+
+iconBtn.MouseButton1Click:Connect(function()
+	iconBtn.Visible = false
+	animateFromIcon(mainFrame, iconBtn)
+
+	-- Pop intro
+	local bounce = TweenService:Create(mainFrame, TweenInfo.new(0.1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 380, 0, 250)
+	})
+	local settle = TweenService:Create(mainFrame, TweenInfo.new(0.1), {
+		Size = UDim2.new(0, 360, 0, 230)
+	})
+	bounce:Play()
+	bounce.Completed:Wait()
+	settle:Play()
+end)
