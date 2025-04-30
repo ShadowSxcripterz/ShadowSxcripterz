@@ -1,214 +1,192 @@
+--// Darling Hub Script | Full Version (Touchscreen, Animasi, Fitur Toggle) //--
+
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
-local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "DarlingHub"
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
+-- Create Core UI
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "DarlingHubUI"
+ScreenGui.ResetOnSpawn = false
 
--- Welcome Animation Frame
-local welcomeFrame = Instance.new("Frame", gui)
-welcomeFrame.Size = UDim2.new(1, 0, 1, 0)
+-- Welcome Darling Intro
+local welcomeFrame = Instance.new("Frame", ScreenGui)
 welcomeFrame.BackgroundTransparency = 1
-welcomeFrame.ZIndex = 10
+welcomeFrame.Size = UDim2.new(1, 0, 1, 0)
 
--- Welcome Darling Letters
+-- Center Welcome Text Container
+local textContainer = Instance.new("Frame", welcomeFrame)
+textContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+textContainer.Position = UDim2.new(0.5, 0, 0.4, 0)
+textContainer.BackgroundTransparency = 1
+textContainer.Size = UDim2.new(0, 600, 0, 100)
+
 local welcomeText = "Welcome Darling"
 local letterLabels = {}
-local centerX = 0.5
-local spacing = 24
-local centerIndex = math.ceil(#welcomeText / 2)
 
 for i = 1, #welcomeText do
 	local char = welcomeText:sub(i, i)
-	local lbl = Instance.new("TextLabel", welcomeFrame)
-	lbl.Text = char
-	lbl.Font = Enum.Font.FredokaOne
-	lbl.TextSize = 50
-	lbl.TextColor3 = Color3.fromRGB(255, 105, 180)
-	lbl.BackgroundTransparency = 1
-	lbl.TextTransparency = 1
-	lbl.AnchorPoint = Vector2.new(0.5, 0.5)
-	lbl.Position = UDim2.new(0.5, (i - centerIndex) * spacing, 0.4, 0)
-	lbl.ZIndex = 10
-	table.insert(letterLabels, lbl)
+	local label = Instance.new("TextLabel", textContainer)
+	label.Text = char
+	label.Size = UDim2.new(0, 30, 1, 0)
+	label.Position = UDim2.new((i - 1) / #welcomeText, 0, 0, 0)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = Color3.fromRGB(255, 105, 180)
+	label.Font = Enum.Font.GothamSemibold
+	label.TextScaled = true
+	label.TextTransparency = 1
+	label.ZIndex = 2
+	table.insert(letterLabels, label)
 end
 
--- Pink glow around text
-local glow = Instance.new("UIStroke")
-glow.Color = Color3.fromRGB(255, 105, 180)
-glow.Thickness = 2
-glow.Transparency = 0.4
-for _, lbl in ipairs(letterLabels) do
-	glow:Clone().Parent = lbl
+-- Pink Glow Effect
+local glow = Instance.new("ImageLabel", welcomeFrame)
+glow.BackgroundTransparency = 1
+glow.Size = UDim2.new(0.5, 0, 0.2, 0)
+glow.Position = UDim2.new(0.5, -200, 0.4, -50)
+glow.Image = "rbxassetid://3135407932"
+glow.ImageColor3 = Color3.fromRGB(255, 105, 180)
+glow.ImageTransparency = 0.5
+
+-- Icon Button (Z)
+local iconBtn = Instance.new("TextButton", ScreenGui)
+iconBtn.Size = UDim2.new(0, 60, 0, 60)
+iconBtn.Position = UDim2.new(0.5, -30, 0.85, 0)
+iconBtn.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+iconBtn.Text = "Z"
+iconBtn.TextScaled = true
+iconBtn.Font = Enum.Font.Fantasy
+iconBtn.TextColor3 = Color3.new(1, 1, 1)
+iconBtn.Visible = false
+iconBtn.AutoButtonColor = false
+
+-- Main UI Frame
+local mainFrame = Instance.new("Frame", ScreenGui)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.Size = UDim2.new(0, 400, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+mainFrame.Visible = false
+mainFrame.ClipsDescendants = true
+
+-- Close Button (X)
+local closeBtn = Instance.new("TextButton", mainFrame)
+closeBtn.Position = UDim2.new(0, 10, 0, 10)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Text = "X"
+closeBtn.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.TextScaled = true
+closeBtn.Font = Enum.Font.GothamBold
+
+-- Feature Toggle Boxes
+local featureNames = {"Aimbot", "ESP", "AutoFarm"}
+local toggles = {}
+
+for i, name in ipairs(featureNames) do
+	local box = Instance.new("TextButton", mainFrame)
+	box.Size = UDim2.new(0.9, 0, 0, 40)
+	box.Position = UDim2.new(0.05, 0, 0, 50 + (i - 1) * 50)
+	box.Text = name
+	box.TextColor3 = Color3.new(1, 1, 1)
+	box.Font = Enum.Font.Gotham
+	box.TextScaled = true
+	box.BackgroundTransparency = 1
+	box.BorderSizePixel = 2
+	box.BorderColor3 = Color3.fromRGB(255, 0, 0)
+	box.AutoButtonColor = false
+	toggles[box] = false
+
+	box.MouseButton1Click:Connect(function()
+		for btn, _ in pairs(toggles) do
+			btn.BorderColor3 = Color3.fromRGB(255, 0, 0)
+			toggles[btn] = false
+		end
+		box.BorderColor3 = Color3.fromRGB(0, 255, 0)
+		toggles[box] = true
+	end)
 end
 
--- Main UI
-local mainUI = Instance.new("Frame", gui)
-mainUI.Size = UDim2.new(0, 320, 0, 260)
-mainUI.Position = UDim2.new(0.5, -160, 0.5, -130)
-mainUI.BackgroundColor3 = Color3.new(0, 0, 0)
-mainUI.BackgroundTransparency = 0.25
-mainUI.BorderSizePixel = 0
-mainUI.Visible = false
-
--- Drag function (touch & mouse)
+-- Drag Support (Touchscreen Compatible)
 local function makeDraggable(frame)
 	local dragging, offset
 	frame.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 			dragging = true
-			offset = input.Position - frame.AbsolutePosition
+			offset = Vector2.new(input.Position.X - frame.Position.X.Offset, input.Position.Y - frame.Position.Y.Offset)
 		end
 	end)
-	UserInputService.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = false
-		end
-	end)
-	UserInputService.InputChanged:Connect(function(input)
+	frame.InputChanged:Connect(function(input)
 		if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
 			frame.Position = UDim2.new(0, input.Position.X - offset.X, 0, input.Position.Y - offset.Y)
 		end
 	end)
+	frame.InputEnded:Connect(function()
+		dragging = false
+	end)
 end
 
-makeDraggable(mainUI)
-
--- Title
-local title = Instance.new("TextLabel", mainUI)
-title.Size = UDim2.new(1, 0, 0, 40)
-title.Text = "DarlingHub"
-title.BackgroundTransparency = 1
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 24
-
--- Close Button
-local closeBtn = Instance.new("TextButton", mainUI)
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(0, 10, 0, 10)
-closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.new(1, 1, 1)
-closeBtn.BackgroundTransparency = 1
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 18
-
--- Icon Button
-local iconBtn = Instance.new("TextButton", gui)
-iconBtn.Text = "Z"
-iconBtn.Size = UDim2.new(0, 50, 0, 50)
-iconBtn.Position = UDim2.new(0, 50, 0, 300)
-iconBtn.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
-iconBtn.TextColor3 = Color3.new(1, 1, 1)
-iconBtn.Font = Enum.Font.GothamBold
-iconBtn.TextSize = 28
-iconBtn.Visible = false
-
+makeDraggable(mainFrame)
 makeDraggable(iconBtn)
 
--- Feature Buttons
-local features = {"Fly", "Noclip", "PartName"}
-for i, name in ipairs(features) do
-	local container = Instance.new("Frame", mainUI)
-	container.Size = UDim2.new(0.8, 0, 0, 36)
-	container.Position = UDim2.new(0.1, 0, 0, 50 + (i - 1) * 45)
-	container.BackgroundTransparency = 1
-	container.BorderColor3 = Color3.fromRGB(255, 0, 0)
-	container.BorderSizePixel = 2
-
-	local btn = Instance.new("TextButton", container)
-	btn.Size = UDim2.new(1, 0, 1, 0)
-	btn.Text = name
-	btn.BackgroundTransparency = 1
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Font = Enum.Font.Gotham
-	btn.TextSize = 16
+-- Fade In Welcome Letters
+for i, label in ipairs(letterLabels) do
+	local tween = TweenService:Create(label, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, (i-1)*0.05), {
+		TextTransparency = 0,
+		Size = UDim2.new(0, 40, 1, 0)
+	})
+	tween:Play()
 end
 
--- UI Animation In
-local function fadeInUI()
-	mainUI.Position = iconBtn.Position
-	mainUI.Size = UDim2.new(0, 60, 0, 60)
-	mainUI.Visible = true
+-- After Welcome Show UI
+task.delay(#letterLabels * 0.05 + 1, function()
+	for i, label in ipairs(letterLabels) do
+		TweenService:Create(label, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+	end
+	TweenService:Create(glow, TweenInfo.new(0.5), {ImageTransparency = 1}):Play()
+	wait(0.5)
+	welcomeFrame:Destroy()
 
-	TweenService:Create(mainUI, TweenInfo.new(0.4), {
-		Position = UDim2.new(0.5, -160, 0.5, -130),
-		Size = UDim2.new(0, 320, 0, 260)
+	mainFrame.Visible = true
+	mainFrame.Size = UDim2.new(0, 0, 0, 0)
+	mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	TweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 400, 0, 300),
+		Position = UDim2.new(0.5, -200, 0.5, -150)
 	}):Play()
+end)
 
-	for _, d in ipairs(mainUI:GetDescendants()) do
-		if d:IsA("TextLabel") or d:IsA("TextButton") then
-			d.TextTransparency = 1
-			TweenService:Create(d, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
-		end
-	end
-end
-
--- UI Animation Out
-local function fadeOutUI()
-	for _, d in ipairs(mainUI:GetDescendants()) do
-		if d:IsA("TextLabel") or d:IsA("TextButton") then
-			TweenService:Create(d, TweenInfo.new(0.3), {
-				TextTransparency = 1
-			}):Play()
+-- X Button Close UI
+closeBtn.MouseButton1Click:Connect(function()
+	for i, child in ipairs(mainFrame:GetChildren()) do
+		if child:IsA("TextLabel") or child:IsA("TextButton") then
+			TweenService:Create(child, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
 		end
 	end
 
-	TweenService:Create(mainUI, TweenInfo.new(0.4), {
-		Position = iconBtn.Position,
-		Size = UDim2.new(0, 60, 0, 60)
+	TweenService:Create(mainFrame, TweenInfo.new(0.4), {
+		Size = UDim2.new(0, 0, 0, 0),
+		Position = iconBtn.Position
 	}):Play()
 
 	wait(0.4)
-	mainUI.Visible = false
+	mainFrame.Visible = false
 	iconBtn.Visible = true
-	TweenService:Create(iconBtn, TweenInfo.new(0.2, Enum.EasingStyle.Back), {
-		Size = UDim2.new(0, 60, 0, 60)
-	}):Play()
-end
-
--- Fade in Welcome letters
-local function animateWelcome()
-	for i, lbl in ipairs(letterLabels) do
-		lbl.TextTransparency = 1
-		lbl.TextSize = 10
-	end
-
-	for i = 1, #letterLabels do
-		local lbl = letterLabels[i]
-		TweenService:Create(lbl, TweenInfo.new(0.25), {
-			TextTransparency = 0,
-			TextSize = 50
-		}):Play()
-		wait(0.05)
-	end
-
-	wait(1.2)
-
-	for i = #letterLabels, 1, -1 do
-		local lbl = letterLabels[i]
-		TweenService:Create(lbl, TweenInfo.new(0.25), {
-			TextTransparency = 1,
-			TextSize = 10
-		}):Play()
-		wait(0.03)
-	end
-
-	wait(0.2)
-	welcomeFrame:Destroy()
-	iconBtn.Visible = false
-	fadeInUI()
-end
-
--- Events
-closeBtn.MouseButton1Click:Connect(fadeOutUI)
-iconBtn.MouseButton1Click:Connect(function()
-	iconBtn.Visible = false
-	fadeInUI()
 end)
 
--- Launch
-mainUI.Visible = false
-iconBtn.Visible = false
-coroutine.wrap(animateWelcome)()
+-- Icon Button Reopen UI
+iconBtn.MouseButton1Click:Connect(function()
+	iconBtn.Visible = false
+	mainFrame.Visible = true
+	mainFrame.Position = iconBtn.Position
+	mainFrame.Size = UDim2.new(0, 0, 0, 0)
+
+	TweenService:Create(mainFrame, TweenInfo.new(0.4), {
+		Size = UDim2.new(0, 400, 0, 300),
+		Position = UDim2.new(0.5, -200, 0.5, -150)
+	}):Play()
+
+	for _, child in ipairs(mainFrame:GetChildren()) do
+		if child:IsA("TextButton") then
+			child.TextTransparency = 0
+		end
+	end
+end)
