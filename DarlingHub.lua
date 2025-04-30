@@ -1,4 +1,4 @@
--- DarlingHub - Full Version Script [Final Fix + Show Anim + Icon Bounce]
+-- DarlingHub - Final Version with Icon + Bounce + Fixes
 
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -56,7 +56,6 @@ mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.Visible = false
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
-
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 16)
 
 local title = Instance.new("TextLabel", mainFrame)
@@ -75,13 +74,15 @@ closeBtn.Font = Enum.Font.GothamBold
 closeBtn.TextColor3 = Color3.new(1, 1, 1)
 closeBtn.BackgroundTransparency = 1
 
+-- Icon Button
 local iconBtn = Instance.new("ImageButton", screenGui)
 iconBtn.Size = UDim2.new(0, 80, 0, 80)
 iconBtn.Position = UDim2.new(0.9, 0, 0.8, 0)
-iconBtn.Image = "rbxassetid://17215674367"
+iconBtn.Image = "rbxassetid://17215674367" -- Zero Two icon
 iconBtn.BackgroundTransparency = 1
 iconBtn.Visible = false
 
+-- Draggable Function
 local function makeDraggable(obj)
 	local dragging, offset
 	obj.InputBegan:Connect(function(input)
@@ -105,7 +106,7 @@ end
 makeDraggable(mainFrame)
 makeDraggable(iconBtn)
 
--- Feature buttons
+-- Feature Buttons
 local features = {"ESP", "Aimbot", "Fly", "Speed"}
 for i, name in ipairs(features) do
 	local button = Instance.new("TextButton", mainFrame)
@@ -155,29 +156,6 @@ local function playWelcome(callback)
 	callback()
 end
 
-local function showUI()
-	mainFrame.Position = iconBtn.Visible and iconBtn.Position or UDim2.new(0.5, 0, 0.5, 0)
-	mainFrame.Size = UDim2.new(0, 0, 0, 0)
-	mainFrame.Visible = true
-
-	TweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
-		Size = UDim2.new(0, 450, 0, 400),
-		Position = UDim2.new(0.5, 0, 0.5, 0)
-	}):Play()
-
-	for i, obj in ipairs(mainFrame:GetChildren()) do
-		if obj:IsA("TextLabel") or obj:IsA("TextButton") then
-			obj.TextTransparency = 1
-			obj.TextSize = 0
-			TweenService:Create(obj, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-				TextTransparency = 0,
-				TextSize = 24
-			}):Play()
-			wait(0.05)
-		end
-	end
-end
-
 local function bounceIcon()
 	local bounce = TweenService:Create(iconBtn, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 		Size = UDim2.new(0, 90, 0, 90)
@@ -188,6 +166,29 @@ local function bounceIcon()
 	bounce:Play()
 	bounce.Completed:Wait()
 	bounceBack:Play()
+end
+
+local function showUI()
+	mainFrame.Position = iconBtn.Visible and iconBtn.Position or UDim2.new(0.5, 0, 0.5, 0)
+	mainFrame.Size = UDim2.new(0, 0, 0, 0)
+	mainFrame.Visible = true
+
+	TweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
+		Size = UDim2.new(0, 450, 0, 400),
+		Position = UDim2.new(0.5, 0, 0.5, 0)
+	}):Play()
+
+	for _, obj in ipairs(mainFrame:GetChildren()) do
+		if obj:IsA("TextLabel") or obj:IsA("TextButton") then
+			obj.TextTransparency = 1
+			obj.TextSize = 0
+			TweenService:Create(obj, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+				TextTransparency = 0,
+				TextSize = 24
+			}):Play()
+			wait(0.05)
+		end
+	end
 end
 
 local function hideUI()
@@ -213,4 +214,6 @@ iconBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Start
-playWelcome(showUI)
+playWelcome(function()
+	iconBtn.Visible = true
+end)
