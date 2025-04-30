@@ -1,190 +1,206 @@
---// DarlingHub FULL SCRIPT (KRNL Compatible) //--
+-- CLEAR UI SEBELUMNYA
+pcall(function() game.CoreGui:FindFirstChild("DarlingHubUI"):Destroy() end)
 
-if game.CoreGui:FindFirstChild("DarlingHub") then
-    game.CoreGui:FindFirstChild("DarlingHub"):Destroy()
-end
-
+-- SERVICES
 local TweenService = game:GetService("TweenService")
-local UIS = game:GetService("UserInputService")
+local UserInputService = game:GetService("UserInputService")
 
--- Main GUI container
-local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "DarlingHub"
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
+-- UI UTAMA
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "DarlingHubUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
 
--- Welcome Animation Frame
-local welcomeFrame = Instance.new("Frame", gui)
-welcomeFrame.Size = UDim2.new(1, 0, 1, 0)
-welcomeFrame.BackgroundTransparency = 1
+-- FUNGSI DRAG
+local function MakeDraggable(frame)
+	local dragging, dragInput, dragStart, startPos
 
-local letters = {}
-local text = "Welcome Darling"
-local centerX = 0.5
-local spacing = 30
-local startY = 0.4
-
-for i = 1, #text do
-	local char = text:sub(i, i)
-	local lbl = Instance.new("TextLabel", welcomeFrame)
-	lbl.Text = char
-	lbl.Font = Enum.Font.GothamSemibold
-	lbl.TextColor3 = Color3.fromRGB(255, 105, 180)
-	lbl.TextStrokeTransparency = 0.5
-	lbl.BackgroundTransparency = 1
-	lbl.TextSize = 60
-	lbl.Position = UDim2.new(centerX, (i - (#text/2 + 0.5)) * spacing, startY, 0)
-	lbl.Size = UDim2.new(0, 50, 0, 50)
-	lbl.TextTransparency = 1
-	lbl.TextScaled = true
-	table.insert(letters, lbl)
-end
-
--- Animate Welcome In
-task.spawn(function()
-	for i, lbl in ipairs(letters) do
-		lbl.TextTransparency = 1
-		lbl.Size = UDim2.new(0, 0, 0, 0)
-		TweenService:Create(lbl, TweenInfo.new(0.25, Enum.EasingStyle.Sine), {
-			TextTransparency = 0,
-			Size = UDim2.new(0, 50, 0, 50)
-		}):Play()
-		task.wait(0.05)
+	local function update(input)
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 	end
-	task.wait(1)
 
-	-- Animate Welcome Out
-	for i = #letters, 1, -1 do
-		local lbl = letters[i]
-		TweenService:Create(lbl, TweenInfo.new(0.25, Enum.EasingStyle.Sine), {
-			TextTransparency = 1,
-			Size = UDim2.new(0, 0, 0, 0)
-		}):Play()
-		task.wait(0.05)
-	end
-	welcomeFrame:Destroy()
-end)
-
--- Icon Button (Z cute style)
-local iconBtn = Instance.new("TextButton", gui)
-iconBtn.Size = UDim2.new(0, 60, 0, 60)
-iconBtn.Position = UDim2.new(0.9, 0, 0.8, 0)
-iconBtn.BackgroundColor3 = Color3.fromRGB(255, 192, 203)
-iconBtn.Text = "Z"
-iconBtn.Font = Enum.Font.GothamBlack
-iconBtn.TextColor3 = Color3.new(1,1,1)
-iconBtn.TextScaled = true
-iconBtn.AutoButtonColor = false
-iconBtn.BackgroundTransparency = 0
-iconBtn.BorderSizePixel = 0
-iconBtn.ClipsDescendants = true
-iconBtn.Name = "ZIcon"
-iconBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-iconBtn.SizeConstraint = Enum.SizeConstraint.RelativeXY
-iconBtn.UICorner = Instance.new("UICorner", iconBtn)
-iconBtn.UICorner.CornerRadius = UDim.new(1, 0)
-
--- Drag handler
-local function makeDraggable(obj)
-	local dragging, offset
-	obj.InputBegan:Connect(function(input)
+	frame.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 			dragging = true
-			offset = input.Position - obj.AbsolutePosition
+			dragStart = input.Position
+			startPos = frame.Position
+
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
 		end
 	end)
-	obj.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = false
+
+	frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+			dragInput = input
 		end
 	end)
-	UIS.InputChanged:Connect(function(input)
-		if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-			obj.Position = UDim2.new(0, input.Position.X - offset.X, 0, input.Position.Y - offset.Y)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			update(input)
 		end
 	end)
 end
-makeDraggable(iconBtn)
 
--- Main UI Frame
-local mainFrame = Instance.new("Frame", gui)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-mainFrame.Size = UDim2.new(0, 350, 0, 400)
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -200)
-mainFrame.Visible = false
-mainFrame.ClipsDescendants = true
-mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+-- WELCOME DARLING ANIMASI
+local WelcomeContainer = Instance.new("Frame", ScreenGui)
+WelcomeContainer.Size = UDim2.new(1, 0, 1, 0)
+WelcomeContainer.BackgroundTransparency = 1
+WelcomeContainer.ZIndex = 5
 
-makeDraggable(mainFrame)
+local WelcomeText = "Welcome Darling"
+local letters = {}
+local centerX = 0.5
+local startX = centerX - (#WelcomeText * 0.5 * 0.04)
+
+for i = 1, #WelcomeText do
+	local char = WelcomeText:sub(i, i)
+	local label = Instance.new("TextLabel", WelcomeContainer)
+	label.Text = char
+	label.Size = UDim2.new(0, 30, 0, 50)
+	label.Position = UDim2.new(startX + (i - 1) * 0.04, 0, 0.45, 0)
+	label.BackgroundTransparency = 1
+	label.TextTransparency = 1
+	label.TextScaled = true
+	label.Font = Enum.Font.Gotham
+	label.TextColor3 = Color3.fromRGB(255, 105, 180)
+	label.ZIndex = 5
+	letters[i] = label
+end
+
+-- AMBIENT LIGHT
+local Ambient = Instance.new("UIGradient", WelcomeContainer)
+Ambient.Rotation = 45
+Ambient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 105, 180)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 200, 255))
+}
+
+-- ANIMASI FADE IN TEXT
+task.wait(0.5)
+for i, label in ipairs(letters) do
+	label.TextTransparency = 1
+	label.TextStrokeTransparency = 1
+	label.Size = UDim2.new(0, 0, 0, 0)
+	local tween = TweenService:Create(label, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{TextTransparency = 0, Size = UDim2.new(0, 30, 0, 50)})
+	tween:Play()
+	task.wait(0.05)
+end
+
+-- TUNGGU SEBELUM FADE OUT
+task.wait(1.5)
+
+-- ANIMASI FADE OUT REVERSE
+for i = #letters, 1, -1 do
+	local tween = TweenService:Create(letters[i], TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+		{TextTransparency = 1, Size = UDim2.new(0, 0, 0, 0)})
+	tween:Play()
+	task.wait(0.05)
+end
+task.wait(0.3)
+WelcomeContainer:Destroy()
+
+-- UI MENU UTAMA
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 300, 0, 400)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.Visible = false
+
+MakeDraggable(MainFrame)
+
+local UICorner = Instance.new("UICorner", MainFrame)
+UICorner.CornerRadius = UDim.new(0, 16)
 
 -- Title
-local title = Instance.new("TextLabel", mainFrame)
-title.Text = "DarlingHub"
-title.Font = Enum.Font.GothamBold
-title.TextSize = 30
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.BackgroundTransparency = 1
-title.Size = UDim2.new(1, 0, 0, 50)
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Text = "DarlingHub"
+Title.Font = Enum.Font.GothamBold
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextScaled = true
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundTransparency = 1
 
 -- Close Button
-local closeBtn = Instance.new("TextButton", mainFrame)
-closeBtn.Text = "X"
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-closeBtn.BackgroundTransparency = 1
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(0, 10, 0, 10)
+local CloseBtn = Instance.new("TextButton", MainFrame)
+CloseBtn.Text = "X"
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(0, 5, 0, 5)
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextScaled = true
 
--- Feature toggles
-local features = {"AutoFarm", "AutoKill", "ESP"}
-for i, name in ipairs(features) do
-	local btn = Instance.new("TextButton", mainFrame)
-	btn.Size = UDim2.new(0.8, 0, 0, 40)
-	btn.Position = UDim2.new(0.1, 0, 0, 60 + (i - 1) * 60)
-	btn.Text = name
-	btn.Font = Enum.Font.Gotham
-	btn.TextSize = 20
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.BackgroundTransparency = 1
+-- FEATURE TOGGLE EXAMPLE
+local function CreateFeatureToggle(text, yPos)
+	local Button = Instance.new("TextButton", MainFrame)
+	Button.Size = UDim2.new(0.9, 0, 0, 40)
+	Button.Position = UDim2.new(0.05, 0, 0, yPos)
+	Button.Text = text
+	Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Button.BackgroundTransparency = 1
+	Button.TextScaled = true
+	Button.Font = Enum.Font.Gotham
 
-	local outline = Instance.new("Frame", btn)
-	outline.Size = UDim2.new(1, 0, 1, 0)
-	outline.Position = UDim2.new(0, 0, 0, 0)
-	outline.BorderSizePixel = 2
-	outline.BackgroundTransparency = 1
-	outline.BorderColor3 = Color3.fromRGB(255, 0, 0)
-	btn.MouseButton1Click:Connect(function()
-		local active = outline.BorderColor3 == Color3.fromRGB(0, 255, 0)
-		outline.BorderColor3 = active and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 255, 0)
+	local Outline = Instance.new("Frame", Button)
+	Outline.Size = UDim2.new(1, 0, 1, 0)
+	Outline.Position = UDim2.new(0, 0, 0, 0)
+	Outline.BackgroundTransparency = 1
+
+	local UIStroke = Instance.new("UIStroke", Outline)
+	UIStroke.Color = Color3.fromRGB(255, 0, 0)
+	UIStroke.Thickness = 2
+
+	local toggled = false
+	Button.MouseButton1Click:Connect(function()
+		toggled = not toggled
+		UIStroke.Color = toggled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
 	end)
 end
 
--- UI Toggle logic
-local function showUI()
-	mainFrame.Visible = true
-	mainFrame.Size = UDim2.new(0, 0, 0, 0)
-	mainFrame.Position = iconBtn.Position
-	TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Size = UDim2.new(0, 350, 0, 400),
-		Position = UDim2.new(0.5, -175, 0.5, -200)
-	}):Play()
-end
+CreateFeatureToggle("Aimbot", 60)
+CreateFeatureToggle("ESP", 110)
+CreateFeatureToggle("Fly", 160)
 
-local function hideUI()
-	for _, v in pairs(mainFrame:GetDescendants()) do
-		if v:IsA("TextLabel") or v:IsA("TextButton") then
-			TweenService:Create(v, TweenInfo.new(0.25), {TextTransparency = 1}):Play()
-		end
-	end
-	TweenService:Create(mainFrame, TweenInfo.new(0.3), {
-		Size = UDim2.new(0, 0, 0, 0),
-		Position = iconBtn.Position
-	}):Play()
-	task.delay(0.3, function()
-		mainFrame.Visible = false
-	end)
-end
+-- ICON ZERO TWO (Z)
+local IconBtn = Instance.new("TextButton", ScreenGui)
+IconBtn.Size = UDim2.new(0, 50, 0, 50)
+IconBtn.Position = UDim2.new(0, 20, 0.5, -25)
+IconBtn.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+IconBtn.Text = "Z"
+IconBtn.TextColor3 = Color3.new(1, 1, 1)
+IconBtn.TextScaled = true
+IconBtn.Font = Enum.Font.GothamBold
 
-iconBtn.MouseButton1Click:Connect(showUI)
-closeBtn.MouseButton1Click:Connect(hideUI)
+MakeDraggable(IconBtn)
+
+-- BUKA UI DARI ICON
+IconBtn.MouseButton1Click:Connect(function()
+	MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+	MainFrame.Size = UDim2.new(0, 0, 0, 0)
+	MainFrame.Visible = true
+
+	local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+		Size = UDim2.new(0, 300, 0, 400)
+	})
+	tween:Play()
+end)
+
+-- CLOSE UI
+CloseBtn.MouseButton1Click:Connect(function()
+	local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+		Size = UDim2.new(0, 0, 0, 0)
+	})
+	tween:Play()
+	tween.Completed:Wait()
+	MainFrame.Visible = false
+end)
