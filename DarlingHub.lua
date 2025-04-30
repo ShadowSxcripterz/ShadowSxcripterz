@@ -1,158 +1,95 @@
--- Darling Hub UI Script (Updated with centered fade, responsive icon, outlined buttons, draggable icon, and pop animation)
-
--- Services
+-- DarlingHub UI dengan toggle interaktif & animasi tekan
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+local playerGui = player:WaitForChild("PlayerGui")
 
--- Main UI
-local screenGui = Instance.new("ScreenGui", game.CoreGui)
+-- UI Cleanup
+if playerGui:FindFirstChild("DarlingHubUI") then
+    playerGui:FindFirstChild("DarlingHubUI"):Destroy()
+end
+
+-- Buat UI
+local screenGui = Instance.new("ScreenGui", playerGui)
 screenGui.Name = "DarlingHubUI"
+screenGui.ResetOnSpawn = false
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 360, 0, 230)
-mainFrame.Position = UDim2.new(0.5, -180, 0.5, -115)
-mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+-- Main Frame
+local mainFrame = Instance.new("Frame", screenGui)
 mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 mainFrame.BackgroundTransparency = 0.3
-mainFrame.Visible = false
-mainFrame.Parent = screenGui
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -150)
+mainFrame.Size = UDim2.new(0, 300, 0, 300)
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.Active = true
+mainFrame.Draggable = true
 
 -- Title
 local title = Instance.new("TextLabel", mainFrame)
-title.Size = UDim2.new(1, 0, 0, 40)
-title.BackgroundTransparency = 1
-title.Text = "Darling Hub"
+title.Text = "DarlingHub"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 26
+title.TextSize = 22
+title.BackgroundTransparency = 1
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 5)
 
--- Close button
-local closeBtn = Instance.new("TextButton", mainFrame)
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(0, 5, 0, 5)
-closeBtn.Text = "X"
-closeBtn.BackgroundTransparency = 1
-closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeBtn.Font = Enum.Font.Gotham
-closeBtn.TextSize = 20
+-- Table fitur
+local fiturList = {
+    "Fly",
+    "No Clip",
+    "PartName"
+}
 
--- Feature Buttons
-local features = {"Fly", "No Clip", "PartName"}
-for i, feature in ipairs(features) do
-	local btn = Instance.new("TextLabel", mainFrame)
-	btn.Size = UDim2.new(0, 200, 0, 30)
-	btn.Position = UDim2.new(0.5, -100, 0, 40 + (i * 40))
-	btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	btn.BackgroundTransparency = 0.4
-	btn.BorderColor3 = Color3.fromRGB(255, 0, 0)
-	btn.BorderSizePixel = 1
-	btn.Text = feature
-	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	btn.Font = Enum.Font.Gotham
-	btn.TextSize = 16
+local toggleStatus = {}
+
+for i, nama in ipairs(fiturList) do
+    local frame = Instance.new("Frame", mainFrame)
+    frame.Size = UDim2.new(0.8, 0, 0, 30)
+    frame.Position = UDim2.new(0.1, 0, 0, 40 + (i - 1) * 40)
+    frame.BackgroundTransparency = 1
+    frame.Name = nama .. "_Frame"
+
+    local outline = Instance.new("Frame", frame)
+    outline.Size = UDim2.new(1, 0, 1, 0)
+    outline.Position = UDim2.new(0, 0, 0, 0)
+    outline.BackgroundTransparency = 1
+    outline.BorderSizePixel = 2
+    outline.BorderColor3 = Color3.fromRGB(255, 0, 0)
+
+    local label = Instance.new("TextLabel", frame)
+    label.Text = nama
+    label.Font = Enum.Font.Gotham
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.TextSize = 18
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+
+    local button = Instance.new("TextButton", frame)
+    button.Size = UDim2.new(1, 0, 1, 0)
+    button.BackgroundTransparency = 1
+    button.Text = ""
+    button.ZIndex = 5
+
+    toggleStatus[nama] = false
+
+    button.MouseButton1Click:Connect(function()
+        -- Animasi tekan
+        local shrink = TweenService:Create(outline, TweenInfo.new(0.1), {Size = UDim2.new(0.95, 0, 0.95, 0), Position = UDim2.new(0.025, 0, 0.025, 0)})
+        local expand = TweenService:Create(outline, TweenInfo.new(0.1), {Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(0, 0, 0, 0)})
+
+        shrink:Play()
+        shrink.Completed:Connect(function()
+            expand:Play()
+        end)
+
+        -- Toggle warna outline
+        toggleStatus[nama] = not toggleStatus[nama]
+        if toggleStatus[nama] then
+            outline.BorderColor3 = Color3.fromRGB(0, 255, 0) -- Hijau
+        else
+            outline.BorderColor3 = Color3.fromRGB(255, 0, 0) -- Merah
+        end
+    end)
 end
-
--- Icon Button
-local iconBtn = Instance.new("TextButton", screenGui)
-iconBtn.Size = UDim2.new(0, 50, 0, 50)
-iconBtn.Position = UDim2.new(0, 20, 1, -70)
-iconBtn.Text = "Z"
-iconBtn.BackgroundColor3 = Color3.fromRGB(255, 105, 180) -- Pink
-iconBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-iconBtn.Font = Enum.Font.GothamBlack
-iconBtn.TextSize = 24
-iconBtn.Visible = true
-iconBtn.AutoButtonColor = false
-
--- Draggable Icon
-local dragging, dragInput, dragStart, startPos
-
-iconBtn.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = iconBtn.Position
-
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
-
-iconBtn.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
-		dragInput = input
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		local delta = input.Position - dragStart
-		iconBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	end
-end)
-
--- Animations
-local function animateToIcon(fromFrame, toIcon)
-	local iconPos = toIcon.AbsolutePosition
-	local framePos = fromFrame.AbsolutePosition
-	local offset = UDim2.new(0, iconPos.X - framePos.X, 0, iconPos.Y - framePos.Y)
-
-	local tween = TweenService:Create(fromFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-		Size = UDim2.new(0, 50, 0, 50),
-		Position = UDim2.new(0, iconPos.X, 0, iconPos.Y)
-	})
-	tween:Play()
-	tween.Completed:Wait()
-	fromFrame.Visible = false
-end
-
-local function animateFromIcon(toFrame, fromIcon)
-	local iconPos = fromIcon.AbsolutePosition
-	toFrame.Size = UDim2.new(0, 50, 0, 50)
-	toFrame.Position = UDim2.new(0, iconPos.X, 0, iconPos.Y)
-	toFrame.Visible = true
-
-	local tween = TweenService:Create(toFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Size = UDim2.new(0, 360, 0, 230),
-		Position = UDim2.new(0.5, -180, 0.5, -115)
-	})
-	tween:Play()
-	tween.Completed:Wait()
-end
-
--- Button Logic
-closeBtn.MouseButton1Click:Connect(function()
-	animateToIcon(mainFrame, iconBtn)
-	iconBtn.Visible = true
-
-	-- Pop animation
-	local pop = TweenService:Create(iconBtn, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Size = UDim2.new(0, 60, 0, 60)
-	})
-	local back = TweenService:Create(iconBtn, TweenInfo.new(0.15), {
-		Size = UDim2.new(0, 50, 0, 50)
-	})
-	pop:Play()
-	pop.Completed:Wait()
-	back:Play()
-end)
-
-iconBtn.MouseButton1Click:Connect(function()
-	iconBtn.Visible = false
-	animateFromIcon(mainFrame, iconBtn)
-
-	-- Pop intro
-	local bounce = TweenService:Create(mainFrame, TweenInfo.new(0.1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Size = UDim2.new(0, 380, 0, 250)
-	})
-	local settle = TweenService:Create(mainFrame, TweenInfo.new(0.1), {
-		Size = UDim2.new(0, 360, 0, 230)
-	})
-	bounce:Play()
-	bounce.Completed:Wait()
-	settle:Play()
-end)
