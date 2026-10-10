@@ -104,6 +104,22 @@ end
 -- tombol hit
 local IB=N("TextButton",{Size=UDim2.fromScale(1,1),AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),BackgroundTransparency=1,Text="",AutoButtonColor=false,BorderSizePixel=0,ZIndex=10,Parent=I})
 
+-- ===== UNIVERSE BG =====
+local BGL=N("Frame",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ClipsDescendants=true,ZIndex=0,Parent=M})
+local stars={}
+for k=1,30 do
+local s=math.random(1,2)
+local f=N("Frame",{Size=U2(s,s),Position=UDim2.fromScale(math.random(),math.random()),BackgroundColor3=(k%4==0)and C.gl or WHITE,BackgroundTransparency=.5,BorderSizePixel=0,ZIndex=0,Parent=BGL})
+Cn(f,2)
+stars[k]={f=f,sp=.6+math.random()*1.6,ph=math.random()*6.28}
+end
+local SH={}
+for k=1,3 do
+local f=N("Frame",{AnchorPoint=Vector2.new(1,.5),Size=U2(60,2),BackgroundColor3=WHITE,BorderSizePixel=0,Rotation=30,Visible=false,ZIndex=0,Parent=BGL})
+N("UIGradient",{Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)}),Parent=f})
+SH[k]={f=f,d=0,t0=0,x=0,y=0,nx=os.clock()+k*1.2}
+end
+
 -- animasi (berbasis os.clock, wrap mulus)
 Con(R.Heartbeat,function()
 local t=os.clock()
@@ -150,21 +166,6 @@ end
 end
 end
 
--- ===== UNIVERSE BG =====
-local BGL=N("Frame",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ClipsDescendants=true,ZIndex=0,Parent=M})
-local stars={}
-for k=1,30 do
-local s=math.random(1,2)
-local f=N("Frame",{Size=U2(s,s),Position=UDim2.fromScale(math.random(),math.random()),BackgroundColor3=(k%4==0)and C.gl or WHITE,BackgroundTransparency=.5,BorderSizePixel=0,ZIndex=0,Parent=BGL})
-Cn(f,2)
-stars[k]={f=f,sp=.6+math.random()*1.6,ph=math.random()*6.28}
-end
-local SH={}
-for k=1,3 do
-local f=N("Frame",{AnchorPoint=Vector2.new(1,.5),Size=U2(60,2),BackgroundColor3=WHITE,BorderSizePixel=0,Rotation=30,Visible=false,ZIndex=0,Parent=BGL})
-N("UIGradient",{Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)}),Parent=f})
-SH[k]={f=f,d=0,t0=0,x=0,y=0,nx=os.clock()+k*1.2}
-end
 
 -- ===== TITLEBAR =====
 local TB=N("Frame",{Size=UDim2.new(1,0,0,48),BackgroundColor3=C.pn,BorderSizePixel=0,Parent=M})
