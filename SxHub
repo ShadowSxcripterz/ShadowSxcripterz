@@ -59,15 +59,15 @@ Cn(e,100)
 N("UIGradient",{Transparency=FADE,Parent=e})
 return e end
 local function Streak(par,cy)
-local e=N("Frame",{AnchorPoint=Vector2.new(.5,.5),Position=UDim2.new(.5,0,cy,0),Size=U2(64,6),BackgroundColor3=WHITE,BackgroundTransparency=.1,BorderSizePixel=0,Parent=par})
+local e=N("Frame",{AnchorPoint=Vector2.new(.5,.5),Position=UDim2.new(.5,0,cy,0),Size=U2(64,9),BackgroundColor3=WHITE,BackgroundTransparency=.1,BorderSizePixel=0,Parent=par})
 Cn(e,100)
 return N("UIGradient",{Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(.38,1),NumberSequenceKeypoint.new(.5,0),NumberSequenceKeypoint.new(.62,1),NumberSequenceKeypoint.new(1,1)}),Parent=e})
 end
 local function BuildDisk(par,cy)
-Layer(par,80,20,C.ac,.45,cy)
-Layer(par,70,14,C.gl,.35,cy)
-Layer(par,60,10,WARM,.22,cy)
-Layer(par,48,5,HOT,.1,cy)
+Layer(par,80,30,C.ac,.45,cy)
+Layer(par,74,22,C.gl,.35,cy)
+Layer(par,62,16,WARM,.22,cy)
+Layer(par,50,9,HOT,.1,cy)
 return Streak(par,cy)
 end
 
@@ -89,7 +89,7 @@ N("UIGradient",{Rotation=90,Transparency=NumberSequence.new({NumberSequenceKeypo
 Loop(Astk,1.8,{Thickness=1.6})
 
 -- disk depan
-local DiskF=N("Frame",{AnchorPoint=Vector2.new(.5,0),Position=UDim2.fromScale(.5,.5),Size=U2(90,13),BackgroundTransparency=1,ClipsDescendants=true,ZIndex=5,Parent=I})
+local DiskF=N("Frame",{AnchorPoint=Vector2.new(.5,0),Position=UDim2.fromScale(.5,.5),Size=U2(90,17),BackgroundTransparency=1,ClipsDescendants=true,ZIndex=5,Parent=I})
 local StreakF=BuildDisk(DiskF,0)
 
 -- partikel kesedot spiral
