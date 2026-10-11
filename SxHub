@@ -543,3 +543,11 @@ end
 task.spawn(Intro)
 
 print("[SxHub] Loaded! ✓")
+-- panel tembus pandang biar bintang kelihatan
+for _,f in ipairs({SB,CT,TB}) do f.BackgroundTransparency=.55 end
+for _,c in ipairs(TB:GetChildren()) do
+if c:IsA("Frame") and c.BackgroundColor3==C.pn then c.BackgroundTransparency=.55 end
+end
+for _,d in ipairs(SC:GetDescendants()) do
+if d:IsA("Frame") and d.BackgroundColor3==C.bg then d.BackgroundTransparency=.35 end
+end
