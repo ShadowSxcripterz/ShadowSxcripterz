@@ -106,7 +106,6 @@ local IB=N("TextButton",{Size=UDim2.fromScale(1,1),AnchorPoint=Vector2.new(.5,.5
 
 -- animasi (berbasis os.clock, wrap mulus)
 Con(R.Heartbeat,function()
-Con(R.Heartbeat,function()
 local t=os.clock()
 if I.Visible then
 local o=((t*.55)%1)*2-1
