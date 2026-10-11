@@ -601,3 +601,41 @@ s.f.BackgroundTransparency=1-math.sin(p*math.pi)
 end
 end
 end)
+-- ===== STAR UPGRADE v2 =====
+D.dr=10 ST.dr=10
+sl.dr=Sl(StT.C,"Gerak Bintang (0 = diam)",0,40,D.dr,"",function(v)ST.dr=v end)
+
+local PAL={WHITE,Color3.fromRGB(190,210,255),Color3.fromRGB(255,225,190),C.gl}
+local function initStar(s)
+s.init=true
+local r=math.random()
+local z=r<.35 and 1 or(r<.7 and 2 or(r<.9 and 3 or 4))
+s.z=z
+s.f.Size=U2(z,z)
+s.f.BackgroundColor3=PAL[math.random(1,#PAL)]
+s.vx=z*.0035*(.7+math.random()*.6)
+s.ts=.5+math.random()*2.5
+s.dim=(z==1 and .35)or(z==2 and .15)or 0
+if z>=3 then N("UIStroke",{Color=s.f.BackgroundColor3,Thickness=2,Transparency=.8,Parent=s.f})end
+end
+for _,s in ipairs(SH)do s.f.Size=U2(110,2)end
+
+local acc2=0
+Con(R.Heartbeat,function(dt)
+if not M.Visible then return end
+acc2=acc2+dt*ST.sp/10
+local lo=.9*(1-ST.br/100)
+local hi=lo+(1-lo)*.6
+for _,s in ipairs(stars)do
+if not s.init then initStar(s)end
+local k=math.sin(acc2*s.ts+s.ph)*.5+.5
+s.f.BackgroundTransparency=math.min(.95,lo+(hi-lo)*k*k+s.dim)
+local p=s.f.Position
+local x=p.X.Scale-dt*s.vx*ST.dr/10
+if x < -0.02 then
+s.f.Position=UDim2.fromScale(1.02,math.random())
+else
+s.f.Position=UDim2.fromScale(x,p.Y.Scale)
+end
+end
+end)
