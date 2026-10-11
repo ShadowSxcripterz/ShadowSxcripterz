@@ -104,23 +104,8 @@ end
 -- tombol hit
 local IB=N("TextButton",{Size=UDim2.fromScale(1,1),AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),BackgroundTransparency=1,Text="",AutoButtonColor=false,BorderSizePixel=0,ZIndex=10,Parent=I})
 
--- ===== UNIVERSE BG =====
-local BGL=N("Frame",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ClipsDescendants=true,ZIndex=0,Parent=M})
-local stars={}
-for k=1,30 do
-local s=math.random(1,2)
-local f=N("Frame",{Size=U2(s,s),Position=UDim2.fromScale(math.random(),math.random()),BackgroundColor3=(k%4==0)and C.gl or WHITE,BackgroundTransparency=.5,BorderSizePixel=0,ZIndex=0,Parent=BGL})
-Cn(f,2)
-stars[k]={f=f,sp=.6+math.random()*1.6,ph=math.random()*6.28}
-end
-local SH={}
-for k=1,3 do
-local f=N("Frame",{AnchorPoint=Vector2.new(1,.5),Size=U2(60,2),BackgroundColor3=WHITE,BorderSizePixel=0,Rotation=30,Visible=false,ZIndex=0,Parent=BGL})
-N("UIGradient",{Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)}),Parent=f})
-SH[k]={f=f,d=0,t0=0,x=0,y=0,nx=os.clock()+k*1.2}
-end
-
 -- animasi (berbasis os.clock, wrap mulus)
+Con(R.Heartbeat,function()
 Con(R.Heartbeat,function()
 local t=os.clock()
 if I.Visible then
@@ -140,32 +125,52 @@ d.Size=U2(s,s)
 d.BackgroundTransparency=1-math.sin(p*math.pi)
 end
 end
-if M.Visible then
-Mgrad.Rotation=(t*30)%360
+if M.Visible then Mgrad.Rotation=(t*30)%360 end
+end)
+
+-- ===== UNIVERSE BG =====
+local BGL=N("Frame",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ClipsDescendants=true,ZIndex=0,Parent=M})
+Cn(BGL,12)
+local stars={}
+for k=1,30 do
+local s=math.random(1,2)
+local f=N("Frame",{Size=U2(s,s),Position=UDim2.fromScale(math.random(),math.random()),BackgroundColor3=(k%4==0)and C.gl or WHITE,BackgroundTransparency=.5,BorderSizePixel=0,ZIndex=0,Parent=BGL})
+Cn(f,2)
+stars[k]={f=f,sp=.6+math.random()*1.6,ph=math.random()*6.28}
+end
+local SH={}
+for k=1,3 do
+local f=N("Frame",{AnchorPoint=Vector2.new(1,.5),Size=U2(60,2),BackgroundColor3=WHITE,BorderSizePixel=0,Rotation=30,Visible=false,ZIndex=0,Parent=BGL})
+N("UIGradient",{Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)}),Parent=f})
+SH[k]={f=f,d=0,t0=0,x=0,y=0,nx=os.clock()+k*1.2}
+end
+Con(R.Heartbeat,function()
+if not M.Visible then return end
+local t=os.clock()
 for _,s in ipairs(stars)do
 s.f.BackgroundTransparency=.35+.5*math.abs(math.sin(t*s.sp+s.ph))
 end
 for _,s in ipairs(SH)do
 if s.d==0 then
 if t>=s.nx then
-s.d=.9+math.random()*.5 s.t0=t
-s.x=math.random(-20,320) s.y=math.random(-20,110)
+s.d=.9+math.random()*.5
+s.t0=t
+s.x=math.random(-20,320)
+s.y=math.random(-20,110)
 s.f.Visible=true
 end
+elseif (t-s.t0)>=s.d then
+s.d=0
+s.f.Visible=false
+s.nx=t+1+math.random()*3
 else
 local p=(t-s.t0)/s.d
-if p>=1 then
-s.d=0 s.f.Visible=false s.nx=t+1+math.random()*3
-else
 local dist=p*380
 s.f.Position=U2(s.x+dist*.866,s.y+dist*.5)
 s.f.BackgroundTransparency=1-math.sin(p*math.pi)
 end
 end
-end
-end
 end)
-
 
 -- ===== TITLEBAR =====
 local TB=N("Frame",{Size=UDim2.new(1,0,0,48),BackgroundColor3=C.pn,BorderSizePixel=0,Parent=M})
