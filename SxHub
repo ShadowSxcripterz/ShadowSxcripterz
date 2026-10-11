@@ -639,3 +639,40 @@ s.f.Position=UDim2.fromScale(x,p.Y.Scale)
 end
 end
 end)
+-- ===== STAR SHAPE (sparkle) =====
+local RAY=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(.5,0),NumberSequenceKeypoint.new(1,1)})
+local function ray(par,w,h,rot,col)
+local e=N("Frame",{AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=U2(w,h),Rotation=rot,BackgroundColor3=col,BackgroundTransparency=.2,BorderSizePixel=0,ZIndex=1,Parent=par})
+N("UIGradient",{Transparency=RAY,Parent=e})
+return e
+end
+local function shape(s)
+s.shaped=true
+s.arms={}
+for _,c in ipairs(s.f:GetChildren()) do
+if c:IsA("UIStroke") then c:Destroy() end
+end
+local z=s.z
+if z<=1 then return end
+local col=s.f.BackgroundColor3
+local L=z==2 and 8 or(z==3 and 13 or 18)
+local th=z>=4 and 2 or 1
+s.arms[1]=ray(s.f,L,th,0,col)
+s.arms[2]=ray(s.f,L,th,90,col)
+if z>=3 then
+s.arms[3]=ray(s.f,math.floor(L*.55),1,45,col)
+s.arms[4]=ray(s.f,math.floor(L*.55),1,-45,col)
+end
+end
+Con(R.Heartbeat,function()
+if not M.Visible then return end
+for _,s in ipairs(stars)do
+if s.init then
+if not s.shaped then shape(s) end
+local t=s.f.BackgroundTransparency
+for i,a in ipairs(s.arms)do
+a.BackgroundTransparency=math.min(1,t+(i>2 and .35 or .05))
+end
+end
+end
+end)
