@@ -127,7 +127,6 @@ if I.Visible then
 local o=((t*.55)%1)*2-1
 StreakB.Offset=Vector2.new(o,0)
 StreakF.Offset=Vector2.new(o,0)
--- busur muter, dalam makin kenceng
 for k,r in ipairs(rings)do
 r.g.Rotation=(t*(70+k*45)+k*90)%360
 end
@@ -165,6 +164,7 @@ end
 end
 end
 end
+end)
 
 
 -- ===== TITLEBAR =====
