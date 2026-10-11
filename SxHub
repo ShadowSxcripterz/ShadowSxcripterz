@@ -507,7 +507,7 @@ for _,c in ipairs(TB:GetChildren()) do
 if c:IsA("Frame") and c.BackgroundColor3==C.pn then c.BackgroundTransparency=.4 end
 end
 
-local BGL=N("Frame",{Name="Space",Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ClipsDescendants=true,ZIndex=0,Parent=M})
+local BGL=N("Frame",{Name="Space",Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ClipsDescendants=true,ZIndex=1,Parent=M})
 Cn(BGL,12)
 local stars={}
 for k=1,45 do
