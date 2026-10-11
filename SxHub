@@ -32,6 +32,22 @@ local IS=60
 local WARM=Color3.fromRGB(255,170,80)
 local HOT=Color3.fromRGB(255,235,200)
 local WHITE=Color3.new(1,1,1)
+-- ===== UNIVERSE BG (dibuat duluan biar di belakang UI) =====
+local BGL=N("Frame",{Name="Space",Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ClipsDescendants=true,ZIndex=1,Parent=M})
+Cn(BGL,12)
+local stars={}
+for k=1,45 do
+local s=math.random(2,3)
+local f=N("Frame",{Size=U2(s,s),Position=UDim2.fromScale(math.random(),math.random()),BackgroundColor3=(k%4==0)and C.gl or WHITE,BackgroundTransparency=.3,BorderSizePixel=0,ZIndex=1,Parent=BGL})
+Cn(f,3)
+stars[k]={f=f,sp=.6+math.random()*1.6,ph=math.random()*6.28}
+end
+local SH={}
+for k=1,3 do
+local f=N("Frame",{AnchorPoint=Vector2.new(1,.5),Size=U2(80,2),BackgroundColor3=WHITE,BorderSizePixel=0,Rotation=30,Visible=false,ZIndex=1,Parent=BGL})
+N("UIGradient",{Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)}),Parent=f})
+SH[k]={f=f,d=0,t0=0,x=0,y=0,nx=os.clock()+k*1.2}
+end
 local I=N("Frame",{Size=U2(IS,IS),AnchorPoint=Vector2.new(.5,.5),Position=UDim2.new(0,50,.5,0),BackgroundTransparency=1,Visible=false,Parent=g})
 local ISc=N("UIScale",{Scale=0,Parent=I})
 
@@ -499,31 +515,12 @@ end
 task.spawn(Intro)
 
 print("[SxHub] Loaded! ✓")
--- ===== UNIVERSE BG v2 =====
+-- ===== UNIVERSE BG (transparan + animasi) =====
 SB.BackgroundTransparency=1
 CT.BackgroundTransparency=1
 TB.BackgroundTransparency=.4
 for _,c in ipairs(TB:GetChildren()) do
 if c:IsA("Frame") and c.BackgroundColor3==C.pn then c.BackgroundTransparency=.4 end
-end
-
-local BGL=N("Frame",{Name="Space",Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ClipsDescendants=true,ZIndex=1,Parent=M})
-BGL.Parent=M
-BGL.ZIndex=0
-BGL:SendToBack()
-Cn(BGL,12)
-local stars={}
-for k=1,45 do
-local s=math.random(2,3)
-local f=N("Frame",{Size=U2(s,s),Position=UDim2.fromScale(math.random(),math.random()),BackgroundColor3=(k%4==0)and C.gl or WHITE,BackgroundTransparency=.3,BorderSizePixel=0,ZIndex=0,Parent=BGL})
-Cn(f,3)
-stars[k]={f=f,sp=.6+math.random()*1.6,ph=math.random()*6.28}
-end
-local SH={}
-for k=1,3 do
-local f=N("Frame",{AnchorPoint=Vector2.new(1,.5),Size=U2(80,2),BackgroundColor3=WHITE,BorderSizePixel=0,Rotation=30,Visible=false,ZIndex=1,Parent=BGL})
-N("UIGradient",{Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)}),Parent=f})
-SH[k]={f=f,d=0,t0=0,x=0,y=0,nx=os.clock()+k*1.2}
 end
 Con(R.Heartbeat,function()
 if not M.Visible then return end
