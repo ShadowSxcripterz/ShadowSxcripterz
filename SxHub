@@ -515,26 +515,78 @@ end
 task.spawn(Intro)
 
 print("[SxHub] Loaded! ✓")
--- ===== UNIVERSE BG (transparan + animasi) =====
-SB.BackgroundTransparency=1
-CT.BackgroundTransparency=1
-TB.BackgroundTransparency=.4
-for _,c in ipairs(TB:GetChildren()) do
-if c:IsA("Frame") and c.BackgroundColor3==C.pn then c.BackgroundTransparency=.4 end
+-- ===== UI SETTINGS =====
+local D={tr=100,bgt=0,w=560,h=400,ic=100,n=45,br=85,sp=10}
+local ST={}
+for k,v in pairs(D) do ST[k]=v end
+
+-- wrapper ikon biar ukurannya bisa diatur tanpa ganggu animasi minimize
+local IC=N("Frame",{AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromScale(1,1),BackgroundTransparency=1,BorderSizePixel=0,Parent=I})
+local ICs=N("UIScale",{Scale=1,Parent=IC})
+for _,c in ipairs(I:GetChildren()) do
+if c:IsA("GuiObject") and c~=IC then c.Parent=IC end
 end
-Con(R.Heartbeat,function()
+
+local function applyTr()
+local a=ST.tr/100
+SB.BackgroundTransparency=a
+CT.BackgroundTransparency=a
+TB.BackgroundTransparency=a*.4
+for _,c in ipairs(TB:GetChildren()) do
+if c:IsA("Frame") and c.BackgroundColor3==C.pn then c.BackgroundTransparency=a*.4 end
+end
+end
+
+local function setStars(n)
+while #stars>n do
+local s=table.remove(stars)
+s.f:Destroy()
+end
+while #stars<n do
+local sz=math.random(2,3)
+local f=N("Frame",{Size=U2(sz,sz),Position=UDim2.fromScale(math.random(),math.random()),BackgroundColor3=(#stars%4==0)and C.gl or WHITE,BackgroundTransparency=.3,BorderSizePixel=0,ZIndex=1,Parent=BGL})
+Cn(f,3)
+stars[#stars+1]={f=f,sp=.6+math.random()*1.6,ph=math.random()*6.28}
+end
+end
+
+-- ===== TAB SETTINGS =====
+local StT=MT("Settings","◆")
+Lbl(StT.C,"UI SETTINGS")Div(StT.C)
+local sl={}
+sl.tr=Sl(StT.C,"Transparansi Panel",0,100,D.tr,"%",function(v)ST.tr=v applyTr()end)
+sl.bgt=Sl(StT.C,"Transparansi Latar",0,100,D.bgt,"%",function(v)ST.bgt=v M.BackgroundTransparency=v/100 end)
+sl.w=Sl(StT.C,"Lebar Menu",400,720,D.w,"px",function(v)ST.w=v M.Size=U2(ST.w,ST.h)end)
+sl.h=Sl(StT.C,"Tinggi Menu",240,420,D.h,"px",function(v)ST.h=v M.Size=U2(ST.w,ST.h)end)
+sl.ic=Sl(StT.C,"Ukuran Ikon",50,200,D.ic,"%",function(v)ST.ic=v ICs.Scale=v/100 end)
+sl.n=Sl(StT.C,"Jumlah Bintang",0,150,D.n,"",function(v)ST.n=v setStars(v)end)
+sl.br=Sl(StT.C,"Kecerahan Bintang",10,100,D.br,"%",function(v)ST.br=v end)
+sl.sp=Sl(StT.C,"Kedip (10 = normal)",1,40,D.sp,"",function(v)ST.sp=v end)
+Btn(StT.C,"Reset ke Default",function()
+for k,s in pairs(sl) do s.Set(D[k]) end
+end)
+
+applyTr()
+setStars(ST.n)
+
+-- ===== ANIMASI BINTANG =====
+local acc=0
+Con(R.Heartbeat,function(dt)
 if not M.Visible then return end
 local t=os.clock()
+acc=acc+dt*ST.sp/10
+local lo=.9*(1-ST.br/100)
+local hi=lo+(1-lo)*.6
 for _,s in ipairs(stars)do
-s.f.BackgroundTransparency=.1+.6*math.abs(math.sin(t*s.sp+s.ph))
+s.f.BackgroundTransparency=lo+(hi-lo)*math.abs(math.sin(acc*s.sp+s.ph))
 end
 for _,s in ipairs(SH)do
 if s.d==0 then
 if t>=s.nx then
 s.d=.9+math.random()*.5
 s.t0=t
-s.x=math.random(-20,320)
-s.y=math.random(-20,110)
+s.x=math.random(-20,math.floor(ST.w*.55))
+s.y=math.random(-20,math.floor(ST.h*.3))
 s.f.Visible=true
 end
 elseif (t-s.t0)>=s.d then
