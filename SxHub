@@ -601,78 +601,55 @@ s.f.BackgroundTransparency=1-math.sin(p*math.pi)
 end
 end
 end)
--- ===== STAR UPGRADE v2 =====
-D.dr=10 ST.dr=10
-sl.dr=Sl(StT.C,"Gerak Bintang (0 = diam)",0,40,D.dr,"",function(v)ST.dr=v end)
-
-local PAL={WHITE,Color3.fromRGB(190,210,255),Color3.fromRGB(255,225,190),C.gl}
-local function initStar(s)
-s.init=true
-local r=math.random()
-local z=r<.35 and 1 or(r<.7 and 2 or(r<.9 and 3 or 4))
-s.z=z
-s.f.Size=U2(z,z)
-s.f.BackgroundColor3=PAL[math.random(1,#PAL)]
-s.vx=z*.0035*(.7+math.random()*.6)
-s.ts=.5+math.random()*2.5
-s.dim=(z==1 and .35)or(z==2 and .15)or 0
-if z>=3 then N("UIStroke",{Color=s.f.BackgroundColor3,Thickness=2,Transparency=.8,Parent=s.f})end
+-- ===== STAR v3 (bentuk bintang beneran) =====
+for i=#stars,1,-1 do
+if stars[i].f then stars[i].f:Destroy() end
+stars[i]=nil
 end
-for _,s in ipairs(SH)do s.f.Size=U2(110,2)end
+local S3={}
+local PAL3={Color3.new(1,1,1),Color3.fromRGB(190,210,255),Color3.fromRGB(255,230,190),Color3.fromRGB(215,170,255)}
+local function newStar()
+local r=math.random()
+local kind=r<.55 and 1 or(r<.88 and 2 or 3)
+local col=PAL3[math.random(1,#PAL3)]
+local o
+if kind==1 then
+local z=math.random(1,2)
+o=N("Frame",{Size=U2(z,z),BackgroundColor3=col,BorderSizePixel=0,ZIndex=1})
+else
+local ts=kind==2 and 9 or 15
+o=N("TextLabel",{Size=U2(ts,ts),BackgroundTransparency=1,Text="★",Font=Enum.Font.GothamBold,TextSize=ts,TextColor3=col,ZIndex=1})
+end
+o.AnchorPoint=Vector2.new(.5,.5)
+o.Position=UDim2.fromScale(math.random(),math.random())
+o.Parent=BGL
+return {o=o,k=kind,sp=.5+math.random()*2.5,ph=math.random()*6.28,vx=kind*.003*(.7+math.random()*.6)}
+end
+setStars=function(n)
+while #S3>n do
+local s=table.remove(S3)
+s.o:Destroy()
+end
+while #S3<n do S3[#S3+1]=newStar() end
+end
+setStars(ST.n)
 
-local acc2=0
+local acc3=0
 Con(R.Heartbeat,function(dt)
 if not M.Visible then return end
-acc2=acc2+dt*ST.sp/10
-local lo=.9*(1-ST.br/100)
-local hi=lo+(1-lo)*.6
-for _,s in ipairs(stars)do
-if not s.init then initStar(s)end
-local k=math.sin(acc2*s.ts+s.ph)*.5+.5
-s.f.BackgroundTransparency=math.min(.95,lo+(hi-lo)*k*k+s.dim)
-local p=s.f.Position
-local x=p.X.Scale-dt*s.vx*ST.dr/10
-if x < -0.02 then
-s.f.Position=UDim2.fromScale(1.02,math.random())
+acc3=acc3+dt*ST.sp/10
+local lo=.85*(1-ST.br/100)
+local hi=lo+(1-lo)*.7
+for _,s in ipairs(S3)do
+local k=math.sin(acc3*s.sp+s.ph)*.5+.5
+local tr=lo+(hi-lo)*k*k*k
+if s.k==1 then s.o.BackgroundTransparency=tr else s.o.TextTransparency=tr end
+local p=s.o.Position
+local x=p.X.Scale-dt*s.vx*(ST.dr or 10)/10
+if x<-0.03 then
+s.o.Position=UDim2.fromScale(1.03,math.random())
 else
-s.f.Position=UDim2.fromScale(x,p.Y.Scale)
-end
-end
-end)
--- ===== STAR SHAPE (sparkle) =====
-local RAY=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(.5,0),NumberSequenceKeypoint.new(1,1)})
-local function ray(par,w,h,rot,col)
-local e=N("Frame",{AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=U2(w,h),Rotation=rot,BackgroundColor3=col,BackgroundTransparency=.2,BorderSizePixel=0,ZIndex=1,Parent=par})
-N("UIGradient",{Transparency=RAY,Parent=e})
-return e
-end
-local function shape(s)
-s.shaped=true
-s.arms={}
-for _,c in ipairs(s.f:GetChildren()) do
-if c:IsA("UIStroke") then c:Destroy() end
-end
-local z=s.z
-if z<=1 then return end
-local col=s.f.BackgroundColor3
-local L=z==2 and 8 or(z==3 and 13 or 18)
-local th=z>=4 and 2 or 1
-s.arms[1]=ray(s.f,L,th,0,col)
-s.arms[2]=ray(s.f,L,th,90,col)
-if z>=3 then
-s.arms[3]=ray(s.f,math.floor(L*.55),1,45,col)
-s.arms[4]=ray(s.f,math.floor(L*.55),1,-45,col)
-end
-end
-Con(R.Heartbeat,function()
-if not M.Visible then return end
-for _,s in ipairs(stars)do
-if s.init then
-if not s.shaped then shape(s) end
-local t=s.f.BackgroundTransparency
-for i,a in ipairs(s.arms)do
-a.BackgroundTransparency=math.min(1,t+(i>2 and .35 or .05))
-end
+s.o.Position=UDim2.fromScale(x,p.Y.Scale)
 end
 end
 end)
