@@ -299,25 +299,127 @@ Con(LP.CharacterAdded,function(ch)task.wait(1)local h=ch:WaitForChild("Humanoid"
 -- ====== VISUAL TAB ======
 Lbl(VsT.C,"👁 VISUAL")Div(VsT.C)
 local espOn=false
-local function addEsp(pl)
-if pl==LP or not pl.Character then return end
-if pl.Character:FindFirstChild("SxESP")then return end
-N("Highlight",{Name="SxESP",FillColor=C.ac,OutlineColor=C.gl,FillTransparency=.5,OutlineTransparency=0,DepthMode=Enum.HighlightDepthMode.AlwaysOnTop,Parent=pl.Character})
+local espOn=false
+local teamCheck=true                              -- ON/OFF team check
+local enemyColor=Color3.fromRGB(255,60,120)       -- warna musuh
+local teamColor=Color3.fromRGB(80,255,180)        -- warna teammate
+local showTeammate=false                          -- tampil teammate atau nggak
+
+local function isEnemy(pl)
+    if not teamCheck then return true end
+    if not pl.Team or not LP.Team then return true end
+    return pl.Team ~= LP.Team
 end
+
+local function addEsp(pl)
+    if pl==LP or not pl.Character then return end
+    local enemy = isEnemy(pl)
+    if not enemy and not showTeammate then return end
+    local h=pl.Character:FindFirstChild("SxESP")
+    local color = enemy and enemyColor or teamColor
+    if h then
+        h.FillColor=color
+        h.OutlineColor=C.gl
+        return
+    end
+    N("Highlight",{
+        Name="SxESP",
+        FillColor=color,
+        OutlineColor=C.gl,
+        FillTransparency=.5,
+        OutlineTransparency=0,
+        DepthMode=Enum.HighlightDepthMode.AlwaysOnTop,
+        Parent=pl.Character
+    })
+end
+
 local function clearEsp()
-for _,pl in ipairs(P:GetPlayers())do
-if pl.Character then local h=pl.Character:FindFirstChild("SxESP")if h then h:Destroy()end end
-end end
+    for _,pl in ipairs(P:GetPlayers())do
+        if pl.Character then 
+            local h=pl.Character:FindFirstChild("SxESP")
+            if h then h:Destroy() end 
+        end
+    end 
+end
+
+local function refreshEsp()
+    clearEsp()
+    if espOn then
+        for _,pl in ipairs(P:GetPlayers()) do
+            pcall(addEsp,pl)
+        end
+    end
+end
+
 Tog(VsT.C,"Player ESP",false,function(v)
-espOn=v
-if v then for _,pl in ipairs(P:GetPlayers())do addEsp(pl)end else clearEsp()end
+    espOn=v
+    refreshEsp()
 end)
+
+Tog(VsT.C,"Team Check",true,function(v)
+    teamCheck=v
+    refreshEsp()
+end)
+
+Tog(VsT.C,"Show Teammate",false,function(v)
+    showTeammate=v
+    refreshEsp()
+end)
+
+Btn(VsT.C,"Warna Musuh",function()
+    -- ganti warna musuh (contoh: acak)
+    local list={
+        Color3.fromRGB(255,60,120),
+        Color3.fromRGB(255,0,0),
+        Color3.fromRGB(255,140,0),
+        Color3.fromRGB(255,0,255),
+        Color3.fromRGB(255,255,0),
+    }
+    local idx=table.find(list,enemyColor) or 0
+    idx=idx%#list+1
+    enemyColor=list[idx]
+    print("[ESP] Warna musuh:",enemyColor)
+    refreshEsp()
+end)
+
+Btn(VsT.C,"Warna Teammate",function()
+    local list={
+        Color3.fromRGB(80,255,180),
+        Color3.fromRGB(0,255,0),
+        Color3.fromRGB(0,200,255),
+        Color3.fromRGB(80,150,255),
+        Color3.fromRGB(200,255,100),
+    }
+    local idx=table.find(list,teamColor) or 0
+    idx=idx%#list+1
+    teamColor=list[idx]
+    print("[ESP] Warna teammate:",teamColor)
+    refreshEsp()
+end)
+
+-- Loop refresh otomatis
 task.spawn(function()
-while g.Parent do task.wait(1)
-if espOn then for _,pl in ipairs(P:GetPlayers())do pcall(addEsp,pl)end end
-end end)
+    while g.Parent do 
+        task.wait(1)
+        if espOn then 
+            for _,pl in ipairs(P:GetPlayers())do 
+                pcall(addEsp,pl)
+            end 
+            -- hapus ESP kalau player baru join & jadi teammate
+            if teamCheck and not showTeammate then
+                for _,pl in ipairs(P:GetPlayers())do
+                    if pl.Team==LP.Team and pl.Character then
+                        local h=pl.Character:FindFirstChild("SxESP")
+                        if h then h:Destroy() end
+                    end
+                end
+            end
+        end
+    end 
+end)
+
 Sl(VsT.C,"Field of View",40,120,math.floor(F0),"fov",function(v)
-local cm=workspace.CurrentCamera if cm then cm.FieldOfView=v end
+    local cm=workspace.CurrentCamera if cm then cm.FieldOfView=v end
 end)
 local fb=false
 Tog(VsT.C,"Fullbright",false,function(v)
