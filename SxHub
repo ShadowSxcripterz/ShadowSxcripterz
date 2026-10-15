@@ -388,35 +388,294 @@ Btn(VsT.C,"Warna Teammate",function()
         Color3.fromRGB(0,255,0),
         Color3.fromRGB(0,200,255),
         Color3.fromRGB(80,150,255),
-        Color3.fromRGB(200,255,100),
-    }
-    local idx=table.find(list,teamColor) or 0
-    idx=idx%#list+1
-    teamColor=list[idx]
-    print("[ESP] Warna teammate:",teamColor)
-    refreshEsp()
-end)
+-- ================================================
+-- ESP SYSTEM v3 — Full Customizable
+-- Line • Box • Health • Distance • Skeleton
+-- ================================================
+local Drawing = Drawing or nil
 
--- Loop refresh otomatis
-task.spawn(function()
-    while g.Parent do 
-        task.wait(1)
-        if espOn then 
-            for _,pl in ipairs(P:GetPlayers())do 
-                pcall(addEsp,pl)
-            end 
-            -- hapus ESP kalau player baru join & jadi teammate
-            if teamCheck and not showTeammate then
-                for _,pl in ipairs(P:GetPlayers())do
-                    if pl.Team==LP.Team and pl.Character then
-                        local h=pl.Character:FindFirstChild("SxESP")
-                        if h then h:Destroy() end
+local espOn=false
+local teamCheck=true
+local showTeam=false
+
+-- Palet warna (diputar tiap klik tombol warna)
+local PALETTE={
+    Color3.fromRGB(255,255,255),
+    Color3.fromRGB(255,60,120),
+    Color3.fromRGB(255,140,0),
+    Color3.fromRGB(255,255,0),
+    Color3.fromRGB(80,255,80),
+    Color3.fromRGB(0,255,255),
+    Color3.fromRGB(80,150,255),
+    Color3.fromRGB(160,60,255),
+    Color3.fromRGB(255,0,255),
+    Color3.fromRGB(80,255,180),
+}
+local function nextColor(c)
+    local idx=table.find(PALETTE,c)
+    if not idx then return PALETTE[1] end
+    return PALETTE[idx%#PALETTE+1]
+end
+
+-- Config ESP
+local ESP={
+    line     = {on=false, color=PALETTE[1],                  thickness=1},
+    box      = {on=false, color=Color3.fromRGB(160,60,255),  thickness=1},
+    health   = {on=false, color=Color3.fromRGB(80,255,80),   thickness=2},
+    distance = {on=false, color=PALETTE[1],                  size=14},
+    skeleton = {on=false, color=Color3.fromRGB(80,255,180),  thickness=1},
+}
+
+-- Team check
+local function isEnemy(plr)
+    if not teamCheck then return true end
+    if not plr.Team or not LP.Team then return true end
+    return plr.Team ~= LP.Team
+end
+
+local function shouldShow(plr)
+    if plr==LP then return false end
+    local char=plr.Character
+    if not char then return false end
+    local hum=char:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health<=0 then return false end
+    if not isEnemy(plr) and not showTeam then return false end
+    return true
+end
+
+-- Drawing helpers
+local function newLine()
+    local l=Drawing.new("Line")
+    l.Visible=false; l.Thickness=1; l.Transparency=1
+    return l
+end
+local function newText()
+    local t=Drawing.new("Text")
+    t.Visible=false; t.Size=14; t.Center=true
+    t.Outline=true; t.OutlineColor=Color3.new(0,0,0)
+    return t
+end
+
+local espDrawings={}
+
+local function createESP(plr)
+    if espDrawings[plr] then return espDrawings[plr] end
+    local o={
+        line=newLine(),
+        boxTop=newLine(), boxBot=newLine(), boxL=newLine(), boxR=newLine(),
+        hBG=newLine(), hFill=newLine(),
+        dist=newText(),
+        skSpine=newLine(), skLArm=newLine(), skRArm=newLine(),
+        skLLeg=newLine(), skRLeg=newLine(),
+    }
+    espDrawings[plr]=o
+    return o
+end
+
+local function destroyESP(plr)
+    local o=espDrawings[plr]
+    if not o then return end
+    for _,d in pairs(o) do pcall(function() d:Remove() end) end
+    espDrawings[plr]=nil
+end
+
+local function clearESP()
+    for plr in pairs(espDrawings) do destroyESP(plr) end
+end
+
+local function hideAll(o)
+    for _,d in pairs(o) do d.Visible=false end
+end
+
+-- Update tiap frame
+local function updateESP()
+    if not espOn or not Drawing then return end
+    local cam=workspace.CurrentCamera
+    if not cam then return end
+    local myHRP=LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+
+    for _,plr in ipairs(P:GetPlayers()) do
+        local o=espDrawings[plr]
+
+        -- nggak ditampilin?
+        if not shouldShow(plr) then
+            if o then hideAll(o) end
+        else
+            o=createESP(plr)
+            local char=plr.Character
+            local head=char:FindFirstChild("Head")
+            local hrp=char:FindFirstChild("HumanoidRootPart")
+            local hum=char:FindFirstChildOfClass("Humanoid")
+
+            if not (head and hrp and hum) then
+                hideAll(o)
+            else
+                local headScreen,headOn=cam:WorldToViewportPoint(head.Position+Vector3.new(0,0.5,0))
+                local feetScreen,feetOn=cam:WorldToViewportPoint(hrp.Position-Vector3.new(0,3,0))
+
+                if not headOn and not feetOn then
+                    hideAll(o)
+                else
+                    local topY=headScreen.Y
+                    local botY=feetScreen.Y
+                    local height=math.abs(botY-topY)
+                    local width=height*0.5
+                    local cx=headScreen.X
+                    local left=cx-width/2
+                    local right=cx+width/2
+
+                    -- ===== LINE =====
+                    if ESP.line.on then
+                        o.line.Visible=true
+                        o.line.From=Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y)
+                        o.line.To=Vector2.new(cx, botY)
+                        o.line.Color=ESP.line.color
+                        o.line.Thickness=ESP.line.thickness
+                        o.line.Transparency=1
+                    else
+                        o.line.Visible=false
+                    end
+
+                    -- ===== BOX =====
+                    if ESP.box.on then
+                        o.boxTop.Visible=true
+                        o.boxTop.From=Vector2.new(left,topY); o.boxTop.To=Vector2.new(right,topY)
+                        o.boxBot.Visible=true
+                        o.boxBot.From=Vector2.new(left,botY); o.boxBot.To=Vector2.new(right,botY)
+                        o.boxL.Visible=true
+                        o.boxL.From=Vector2.new(left,topY); o.boxL.To=Vector2.new(left,botY)
+                        o.boxR.Visible=true
+                        o.boxR.From=Vector2.new(right,topY); o.boxR.To=Vector2.new(right,botY)
+                        for _,d in ipairs({o.boxTop,o.boxBot,o.boxL,o.boxR}) do
+                            d.Color=ESP.box.color
+                            d.Thickness=ESP.box.thickness
+                            d.Transparency=1
+                        end
+                    else
+                        o.boxTop.Visible=false; o.boxBot.Visible=false
+                        o.boxL.Visible=false; o.boxR.Visible=false
+                    end
+
+                    -- ===== HEALTH =====
+                    if ESP.health.on then
+                        local hpPct=math.clamp(hum.Health/hum.MaxHealth,0,1)
+                        local hX=right+4
+                        o.hBG.Visible=true
+                        o.hBG.From=Vector2.new(hX,topY); o.hBG.To=Vector2.new(hX,botY)
+                        o.hBG.Color=Color3.new(0,0,0)
+                        o.hBG.Thickness=ESP.health.thickness+2
+                        o.hBG.Transparency=1
+
+                        o.hFill.Visible=true
+                        local fillTop=botY-height*hpPct
+                        o.hFill.From=Vector2.new(hX,fillTop); o.hFill.To=Vector2.new(hX,botY)
+                        o.hFill.Color=ESP.health.color
+                        o.hFill.Thickness=ESP.health.thickness
+                        o.hFill.Transparency=1
+                    else
+                        o.hBG.Visible=false; o.hFill.Visible=false
+                    end
+
+                    -- ===== DISTANCE =====
+                    if ESP.distance.on then
+                        local dist=0
+                        if myHRP then
+                            dist=math.floor((hrp.Position-myHRP.Position).Magnitude)
+                        end
+                        o.dist.Visible=true
+                        o.dist.Text=tostring(dist).." studs"
+                        o.dist.Position=Vector2.new(cx, botY+14)
+                        o.dist.Color=ESP.distance.color
+                        o.dist.Size=ESP.distance.size
+                    else
+                        o.dist.Visible=false
+                    end
+
+                    -- ===== SKELETON =====
+                    if ESP.skeleton.on then
+                        local lHand=char:FindFirstChild("LeftHand") or char:FindFirstChild("Left Arm")
+                        local rHand=char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
+                        local lFoot=char:FindFirstChild("LeftFoot") or char:FindFirstChild("Left Leg")
+                        local rFoot=char:FindFirstChild("RightFoot") or char:FindFirstChild("Right Leg")
+
+                        local function scr(part)
+                            if not part then return nil end
+                            local p,on=cam:WorldToViewportPoint(part.Position)
+                            if not on then return nil end
+                            return Vector2.new(p.X,p.Y)
+                        end
+
+                        local pHead=scr(head)
+                        local pHRP=scr(hrp)
+                        local pLHand=scr(lHand)
+                        local pRHand=scr(rHand)
+                        local pLFoot=scr(lFoot)
+                        local pRFoot=scr(rFoot)
+
+                        local function setLine(l,a,b)
+                            if a and b then
+                                l.Visible=true
+                                l.From=a; l.To=b
+                                l.Color=ESP.skeleton.color
+                                l.Thickness=ESP.skeleton.thickness
+                                l.Transparency=1
+                            else
+                                l.Visible=false
+                            end
+                        end
+
+                        setLine(o.skSpine, pHead, pHRP)
+                        setLine(o.skLArm, pHRP, pLHand)
+                        setLine(o.skRArm, pHRP, pRHand)
+                        setLine(o.skLLeg, pHRP, pLFoot)
+                        setLine(o.skRLeg, pHRP, pRFoot)
+                    else
+                        o.skSpine.Visible=false
+                        o.skLArm.Visible=false; o.skRArm.Visible=false
+                        o.skLLeg.Visible=false; o.skRLeg.Visible=false
                     end
                 end
             end
         end
-    end 
-end)
+    end
+end
+
+-- ===== GUI =====
+Lbl(VsT.C,"👁 ESP SETTINGS")Div(VsT.C)
+Tog(VsT.C,"Player ESP",false,function(v) espOn=v; if not v then clearESP() end end)
+Tog(VsT.C,"Team Check",true,function(v) teamCheck=v end)
+Tog(VsT.C,"Show Teammate",false,function(v) showTeam=v end)
+
+Lbl(VsT.C,"━━━ ESP LINE ━━━",C.td)
+Tog(VsT.C,"Line",false,function(v) ESP.line.on=v end)
+Btn(VsT.C,"🎨 Warna Line",function() ESP.line.color=nextColor(ESP.line.color) end)
+Sl(VsT.C,"Ketebalan Line",1,10,1,"px",function(v) ESP.line.thickness=v end)
+
+Lbl(VsT.C,"━━━ ESP BOX ━━━",C.td)
+Tog(VsT.C,"Box",false,function(v) ESP.box.on=v end)
+Btn(VsT.C,"🎨 Warna Box",function() ESP.box.color=nextColor(ESP.box.color) end)
+Sl(VsT.C,"Ketebalan Box",1,10,1,"px",function(v) ESP.box.thickness=v end)
+
+Lbl(VsT.C,"━━━ ESP HEALTH ━━━",C.td)
+Tog(VsT.C,"Health Bar",false,function(v) ESP.health.on=v end)
+Btn(VsT.C,"🎨 Warna Health",function() ESP.health.color=nextColor(ESP.health.color) end)
+Sl(VsT.C,"Ketebalan Health",1,10,2,"px",function(v) ESP.health.thickness=v end)
+
+Lbl(VsT.C,"━━━ ESP DISTANCE ━━━",C.td)
+Tog(VsT.C,"Distance",false,function(v) ESP.distance.on=v end)
+Btn(VsT.C,"🎨 Warna Distance",function() ESP.distance.color=nextColor(ESP.distance.color) end)
+Sl(VsT.C,"Ukuran Text",10,24,14,"pt",function(v) ESP.distance.size=v end)
+
+Lbl(VsT.C,"━━━ ESP SKELETON ━━━",C.td)
+Tog(VsT.C,"Skeleton",false,function(v) ESP.skeleton.on=v end)
+Btn(VsT.C,"🎨 Warna Skeleton",function() ESP.skeleton.color=nextColor(ESP.skeleton.color) end)
+Sl(VsT.C,"Ketebalan Skeleton",1,10,1,"px",function(v) ESP.skeleton.thickness=v end)
+
+-- Render loop
+Con(R.RenderStepped,function() pcall(updateESP) end)
+
+-- Cleanup kalau player keluar
+Con(P.PlayerRemoving,function(plr) destroyESP(plr) end)
 
 Sl(VsT.C,"Field of View",40,120,math.floor(F0),"fov",function(v)
     local cm=workspace.CurrentCamera if cm then cm.FieldOfView=v end
