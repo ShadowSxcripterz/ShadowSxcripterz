@@ -299,7 +299,6 @@ Con(LP.CharacterAdded,function(ch)task.wait(1)local h=ch:WaitForChild("Humanoid"
 -- ====== VISUAL TAB ======
 Lbl(VsT.C,"👁 VISUAL")Div(VsT.C)
 local espOn=false
-local espOn=false
 local teamCheck=true                              -- ON/OFF team check
 local enemyColor=Color3.fromRGB(255,60,120)       -- warna musuh
 local teamColor=Color3.fromRGB(80,255,180)        -- warna teammate
