@@ -388,6 +388,15 @@ Btn(VsT.C,"Warna Teammate",function()
         Color3.fromRGB(0,255,0),
         Color3.fromRGB(0,200,255),
         Color3.fromRGB(80,150,255),
+    }
+
+    local idx=table.find(list,teamColor) or 0
+    idx=idx%#list+1
+    teamColor=list[idx]
+
+    print("[ESP] Warna teammate:",teamColor)
+    refreshEsp()
+end)
 -- ================================================
 -- ESP SYSTEM v3 — Full Customizable
 -- Line • Box • Health • Distance • Skeleton
