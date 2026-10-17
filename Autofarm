@@ -773,48 +773,81 @@ end
             and workspace.Etc.Job.Truck:FindFirstChild("Starter")
             
         if char and starter then
-            local pos = starter:IsA("BasePart") and starter.Position 
-                     or (starter:IsA("Model") and starter:GetPivot().Position) 
-                     or (starter:FindFirstChildWhichIsA("BasePart", true) and starter:FindFirstChildWhichIsA("BasePart", true).Position)
-            
-            if pos then
-                char:MoveTo(pos + Vector3.new(0, 3, 0)) 
-                print("✅ Player di-TP ke Starter")
-                
-                -- Tembak prompt Starter kalau ada
-                local prompt = starter:FindFirstChild("Prompt")
-                if prompt then pcall(function() fireproximityprompt(prompt) end) end
-            end
+-- ==========================================
+-- 2. TELEPORT PLAYER & FIRE STARTER PROMPT
+-- ==========================================
+btn.Text = "KE STARTER..."
+local starterPrompt = workspace:FindFirstChild("Etc") 
+    and workspace.Etc:FindFirstChild("Job") 
+    and workspace.Etc.Job:FindFirstChild("Truck") 
+    and workspace.Etc.Job.Truck:FindFirstChild("Starter")
+    and workspace.Etc.Job.Truck.Starter:FindFirstChild("Prompt")
+    
+if char and starterPrompt and starterPrompt:IsA("ProximityPrompt") then
+    -- 1. Teleport Karakter persis ke lokasi Prompt-nya
+    local promptParent = starterPrompt.Parent -- Biasanya ini Part Starter-nya
+    if promptParent and promptParent:IsA("BasePart") then
+        char:MoveTo(promptParent.Position + Vector3.new(0, 3, 0))
+    end
+    
+    -- 2. Kasih jeda dikit biar game sadar lo udah di sana
+    task.wait(0.5) 
+    
+    -- 3. Fire Prompt-nya (Pake Loop buat jaga-jaga)
+    for i = 1, 5 do
+        local success, err = pcall(function() 
+            fireproximityprompt(starterPrompt) 
+        end)
+        if success then
+            print("✅ Berhasil fire Starter Prompt!")
+            break
+        else
+            print("⚠️ Gagal fire Starter (Percobaan "..i.."):", err)
+            task.wait(0.5)
         end
-        task.wait(4) -- 🔥 Jeda 4 detik: Biar prompt Starter muncul & ke-load
-        
-        -- ==========================================
-        -- 3. TELEPORT PLAYER KE SPAWNER.VISUAL
-        -- ==========================================
-        btn.Text = "KE SPAWNER..."
-        local spawner = workspace:FindFirstChild("Etc") 
-            and workspace.Etc:FindFirstChild("Job") 
-            and workspace.Etc.Job:FindFirstChild("Truck") 
-            and workspace.Etc.Job.Truck:FindFirstChild("Spawner")
-            and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Visual")
-            
-        if char and spawner then
-            local pos = spawner:IsA("BasePart") and spawner.Position 
-                     or (spawner:IsA("Model") and spawner:GetPivot().Position) 
-                     or (spawner:FindFirstChildWhichIsA("BasePart", true) and spawner:FindFirstChildWhichIsA("BasePart", true).Position)
-            
-            if pos then
-                char:MoveTo(pos + Vector3.new(0, 3, 0))
-                print("✅ Player di-TP ke Spawner")
-                
-                -- Tembak prompt Spawner
-                local promptPart = workspace.Etc.Job.Truck.Spawner:FindFirstChild("Part")
-                if promptPart and promptPart:FindFirstChild("Prompt") then 
-                    pcall(function() fireproximityprompt(promptPart.Prompt) end) 
-                end
-            end
+    end
+else
+    print("❌ Starter Prompt gak ketemu / bukan ProximityPrompt!")
+end
+task.wait(4) -- 🔥 Jeda 4 detik: Biar UI game ngebaca kalo job udah di-start
+
+-- ==========================================
+-- 3. TELEPORT PLAYER & FIRE SPAWNER PROMPT
+-- ==========================================
+btn.Text = "KE SPAWNER..."
+local spawnerPrompt = workspace:FindFirstChild("Etc") 
+    and workspace.Etc:FindFirstChild("Job") 
+    and workspace.Etc.Job:FindFirstChild("Truck") 
+    and workspace.Etc.Job.Truck:FindFirstChild("Spawner")
+    and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Part")
+    and workspace.Etc.Job.Truck.Spawner.Part:FindFirstChild("Prompt")
+    
+if char and spawnerPrompt and spawnerPrompt:IsA("ProximityPrompt") then
+    -- 1. Teleport Karakter persis ke lokasi Part Spawner
+    local promptParent = spawnerPrompt.Parent -- Ini Part Spawner
+    if promptParent and promptParent:IsA("BasePart") then
+        char:MoveTo(promptParent.Position + Vector3.new(0, 3, 0))
+    end
+    
+    task.wait(0.5) -- Jeda bentar
+    
+    -- 2. Fire Prompt-nya
+    for i = 1, 5 do
+        local success, err = pcall(function() 
+            fireproximityprompt(spawnerPrompt) 
+        end)
+        if success then
+            print("✅ Berhasil fire Spawner Prompt!")
+            break
+        else
+            print("⚠️ Gagal fire Spawner (Percobaan "..i.."):", err)
+            task.wait(0.5)
         end
-        task.wait(3) -- 🔥 Jeda 3 detik: Krusial buat nunggu mobil beneran muncul di map
+    end
+else
+    print("❌ Spawner Prompt gak ketemu / bukan ProximityPrompt!")
+end
+task.wait(3) -- 🔥 Jeda 3 detik biar mobil bener-bener muncul di map
         
         -- ==========================================
         -- 4. NAIK KE MOBIL (DUDUK)
