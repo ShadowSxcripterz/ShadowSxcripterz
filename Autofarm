@@ -724,7 +724,23 @@ local function autoFarmLoop()
     end
 end
 
-
+-- 🔥 Fungsi untuk memilih job via RemoteEvent
+local function autoSelectJob()
+    print("🤖 Menembak Remote Event Job...")
+    pcall(function()
+        local jobRemote = ReplicatedStorage:FindFirstChild("NetworkContainer") 
+            and ReplicatedStorage.NetworkContainer:FindFirstChild("RemoteEvents") 
+            and ReplicatedStorage.NetworkContainer.RemoteEvents:FindFirstChild("Job")
+        
+        if jobRemote then
+            jobRemote:FireServer("Truck")
+            print("✅ Berhasil menembak Remote Job ('Truck')")
+            notify("✅ Job Truck Berhasil Diambil!")
+        else
+            print("❌ Remote Event 'Job' gak ketemu di path yang dikasih.")
+        end
+    end)
+end
 
         
             
