@@ -767,50 +767,51 @@ end
         task.wait(2) -- Jeda 2 detik
         
         -- ==========================================
-        -- LANGKAH 2: TELEPORT KE WAYPOINT
         -- ==========================================
-        btn.Text = "KE WAYPOINT..."
-        local waypoint = workspace:FindFirstChild("Etc") 
-            and workspace.Etc:FindFirstChild("Waypoint") 
-            and workspace.Etc.Waypoint:FindFirstChild("Waypoint")
-            
-        if hrp and hum and waypoint then
-            -- Lepas dari kursi kalau lagi duduk
-            hum.Sit = false 
-            task.wait(0.2)
-            
-            -- Teleport ke Waypoint (dikasih +3 studs biar gak tenggelam)
-            hrp.CFrame = CFrame.new(waypoint.Position + Vector3.new(0, 3, 0))
-            task.wait(1) -- Jeda 1 detik biar game sadar player udah pindah
-            print("✅ Sampai di Waypoint!")
-        else
-            print("❌ HRP atau Waypoint gak ketemu!")
-        end
-        task.wait(2) -- Jeda 2 detik
+-- LANGKAH 2: TELEPORT KE WAYPOINT (Atau Starter)
+-- ==========================================
+btn.Text = "KE WAYPOINT..."
+local waypoint = workspace:FindFirstChild("Etc") 
+    and workspace.Etc:FindFirstChild("Waypoint") 
+    and workspace.Etc.Waypoint:FindFirstChild("Waypoint")
+    
+if hum and waypoint then
+    hum.Sit = false 
+    task.wait(0.2)
+    safeTeleportPlayer(waypoint.Position)
+    print("✅ Sampai di Waypoint!")
+else
+    print("❌ HRP atau Waypoint gak ketemu!")
+end
+
+-- 🔥 JEDA DIPERPANJANG DI SINI 🔥
+task.wait(5) -- Kasih waktu 5 detik biar ProximityPrompt muncul sempurna
+-- (Kalau 5 detik masih kurang, naikin jadi 6 atau 7)
+
+-- ==========================================
+-- LANGKAH 3: TELEPORT KE SPAWNER.VISUAL
+-- ==========================================
+btn.Text = "KE SPAWNER..."
+local spawnerVisual = workspace:FindFirstChild("Etc") 
+    and workspace.Etc:FindFirstChild("Job") 
+    and workspace.Etc.Job:FindFirstChild("Truck") 
+    and workspace.Etc.Job.Truck:FindFirstChild("Spawner")
+    and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Visual")
+    
+if hrp and spawnerVisual then
+    safeTeleportPlayer(spawnerVisual.Position)
+    task.wait(1)
+    
+    -- Tembak promptnya (kalau ada)
+    local prompt = workspace.Etc.Job.Truck.Spawner.Part and workspace.Etc.Job.Truck.Spawner.Part:FindFirstChild("Prompt")
+    if prompt then pcall(function() fireproximityprompt(prompt) end) end
+    print("✅ Sampai di Spawner & Prompt di-fire!")
+else
+    print("❌ Spawner Visual gak ketemu!")
+end
+task.wait(3) -- 🔥 Jeda buat nunggu mobil muncul
         
         -- ==========================================
-        -- LANGKAH 3: TELEPORT KE SPAWNER.VISUAL
-        -- ==========================================
-        btn.Text = "KE SPAWNER..."
-        local spawnerVisual = workspace:FindFirstChild("Etc") 
-            and workspace.Etc:FindFirstChild("Job") 
-            and workspace.Etc.Job:FindFirstChild("Truck") 
-            and workspace.Etc.Job.Truck:FindFirstChild("Spawner")
-            and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Visual")
-            
-        if hrp and spawnerVisual then
-            -- Teleport ke Spawner
-            hrp.CFrame = CFrame.new(spawnerVisual.Position + Vector3.new(0, 3, 0))
-            task.wait(1)
-            
-            -- Tembak promptnya (kalau ada)
-            local prompt = workspace.Etc.Job.Truck.Spawner.Part and workspace.Etc.Job.Truck.Spawner.Part:FindFirstChild("Prompt")
-            if prompt then pcall(function() fireproximityprompt(prompt) end) end
-            print("✅ Sampai di Spawner & Prompt di-fire!")
-        else
-            print("❌ Spawner Visual gak ketemu!")
-        end
-        task.wait(3) -- 🔥 Jeda 3 detik: Krusial buat nunggu mobil beneran muncul di depan lo
         
         -- ==========================================
         -- LANGKAH 4: NAIK KE MOBIL
