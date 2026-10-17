@@ -753,19 +753,72 @@ btn.MouseButton1Click:Connect(function()
         -- Pas di Start
         isAutoFarming = true
         totalUptime = 0
-        
-        -- Ubah text tombol jadi loading
         btn.Text = "MENGAMBIL JOB..."
         btn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
         
-        -- 1. Tembak Remote Job
+        -- 1. Tembak Remote Event Job
         autoSelectJob() 
+        task.wait(1.5) 
         
-        -- 🔥 2. KASIH JEDA DI SINI 🔥
-        -- Kasih waktu 2-3 detik biar server sempet nge-load Waypoint baru
-        task.wait(2.5) 
+        -- 2. Fire Starter Prompt
+        btn.Text = "FIRE STARTER..."
+        local starterPrompt = workspace:FindFirstChild("Etc") 
+            and workspace.Etc:FindFirstChild("Job") 
+            and workspace.Etc.Job:FindFirstChild("Truck") 
+            and workspace.Etc.Job.Truck:FindFirstChild("Starter") 
+            and workspace.Etc.Job.Truck.Starter:FindFirstChild("Prompt")
+            
+        if starterPrompt then
+            pcall(function() fireproximityprompt(starterPrompt) end)
+        end
+        task.wait(1.5) 
         
-        -- 3. Baru mulai loop-nya
+        -- 3. Fire Spawner Prompt (Naikin Truck)
+        btn.Text = "SPAWNING TRUCK..."
+        local spawnerPrompt = workspace:FindFirstChild("Etc") 
+            and workspace.Etc:FindFirstChild("Job") 
+            and workspace.Etc.Job:FindFirstChild("Truck") 
+            and workspace.Etc.Job.Truck:FindFirstChild("Spawner")
+            and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Part")
+            and workspace.Etc.Job.Truck.Spawner.Part:FindFirstChild("Prompt")
+            
+        if spawnerPrompt then
+            pcall(function() fireproximityprompt(spawnerPrompt) end)
+        end
+        
+        -- 4. TUNGGU TRUCK & DUDUKIN PLAYER OTOMATIS
+        btn.Text = "NAIK KE MOBIL..."
+        task.wait(2) -- Tunggu 2 detik biar mobil selesai ke-spawn
+        
+        local char = LP.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        
+        if hum then
+            -- Path presisi sesuai temuan lo
+            local vehicles = workspace:FindFirstChild("Vehicles")
+            local myCar = vehicles and vehicles:FindFirstChild(LP.Name .. "sCar") 
+            local driveSeat = myCar and myCar:FindFirstChild("DriveSeat")
+            
+            if driveSeat then
+                -- Paksa duduk
+                pcall(function()
+                    driveSeat:Sit(hum) 
+                    print("✅ Berhasil duduk di:", driveSeat:GetFullName())
+                end)
+                
+                -- Tembak promptnya juga (jaga-jaga kalau game butuh trigger)
+                local prompt = driveSeat:FindFirstChild("PromptDriveSeat")
+                if prompt then
+                    pcall(function() fireproximityprompt(prompt) end)
+                end
+            else
+                print("❌ Mobil gak ketemu di workspace.Vehicles!") 
+            end
+        end
+        
+        task.wait(1.5) -- Jeda biar player bener-bener duduk di dalam mobil
+        
+        -- 5. Baru Jalanin Auto Farm
         btn.Text = "STOP AUTO FARMING"
         notify("🚀 Auto-Farming Dimulai!")
         task.spawn(autoFarmLoop)
