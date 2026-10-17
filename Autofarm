@@ -796,13 +796,23 @@ local function firePrompt(prompt)
 end
 
 -- 1. STARTER
-local starter = waitFor(Truck, "Starter", 5)
-local sPos = starter and getPos(starter)
-if not sPos then print("❌ Starter gak ketemu") return end
+-- 1. WAYPOINT (gantiin tween ke Starter)
+local wp = workspace:FindFirstChild("Etc")
+    and workspace.Etc:FindFirstChild("Waypoint")
+    and workspace.Etc.Waypoint:FindFirstChild("Waypoint")
 
-tweenTo(sPos, 3)
-local sPrompt = starter:FindFirstChildWhichIsA("ProximityPrompt", true)
-if sPrompt then print("Starter fire:", firePrompt(sPrompt)) else print("❌ Starter prompt gak ada") end
+local wpPos = wp and getPos(wp)
+if not wpPos then print("❌ Waypoint gak ketemu") return end
+
+tweenTo(wpPos, 3)
+
+local starter = Truck:FindFirstChild("Starter")
+local sPrompt = starter and starter:FindFirstChildWhichIsA("ProximityPrompt", true)
+if sPrompt then
+    print("Starter fire:", firePrompt(sPrompt))
+else
+    print("❌ Starter prompt gak ada")
+end
 task.wait(1)
 
 -- 2. SPAWNER (nunggu ke-load dulu)
