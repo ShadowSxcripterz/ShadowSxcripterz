@@ -814,10 +814,11 @@ btn.MouseButton1Click:Connect(function()
         task.wait(2) 
         
         -- ==========================================
-        -- LANGKAH 2: TWEEN KE STARTER
         -- ==========================================
-        btn.Text = "MELUNCUR KE STARTER..."
-        local starter = workspace:FindFirstChild("Etc") 
+-- LANGKAH 2: TWEEN KE STARTER
+-- ==========================================
+btn.Text = "MELUNCUR KE STARTER..."
+local starter = workspace:FindFirstChild("Etc") 
     and workspace.Etc:FindFirstChild("Job") 
     and workspace.Etc.Job:FindFirstChild("Truck") 
     and workspace.Etc.Job.Truck:FindFirstChild("Starter")
