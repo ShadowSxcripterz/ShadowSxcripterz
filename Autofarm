@@ -24,6 +24,7 @@ end
 
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
@@ -280,7 +281,6 @@ closeBtn.MouseButton1Click:Connect(function()
     t:Play()
 end)
 
--- ===== TEMA ENVIRONMENT: ORBIT MATAHARI/BULAN =====
 -- ===== TEMA ENVIRONMENT: ORBIT + CUACA =====
 local SIANG = {
     top = Color3.fromRGB(60, 150, 255), bot = Color3.fromRGB(175, 228, 255),
@@ -724,16 +724,41 @@ local function autoFarmLoop()
     end
 end
 
+-- 🔥 FUNGSI TEMBAK REMOTE JOB (Cuma sekali) 🔥
+local function autoSelectJob()
+    print("🤖 Menembak Remote Event Job...")
+    pcall(function()
+        local jobRemote = ReplicatedStorage:FindFirstChild("NetworkContainer") 
+            and ReplicatedStorage.NetworkContainer:FindFirstChild("RemoteEvents") 
+            and ReplicatedStorage.NetworkContainer.RemoteEvents:FindFirstChild("Job")
+        
+        if jobRemote then
+            jobRemote:FireServer("Truck")
+            print("✅ Berhasil nembak Remote Job ('Truck')")
+            notify("✅ Job Truck Berhasil Diambil!")
+        else
+            print("❌ Remote Event 'Job' gak ketemu.")
+        end
+    end)
+end
+
 btn.MouseButton1Click:Connect(function()
     if isAutoFarming then
+        -- Pas di Stop
         isAutoFarming = false
         btn.Text = "MULAI AUTO FARMING"
         btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
         notify("🛑 Auto-Farming Dihentikan.")
     else
+        -- Pas di Start
         isAutoFarming = true
+        totalUptime = 0
         btn.Text = "STOP AUTO FARMING"
         btn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        
+        -- 🔥 PANGGIL DI SINI (Cuma sekali pas start) 🔥
+        autoSelectJob() 
+        
         notify("🚀 Auto-Farming Dimulai!")
         task.spawn(autoFarmLoop)
     end
