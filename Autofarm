@@ -756,56 +756,71 @@ btn.MouseButton1Click:Connect(function()
         btn.Text = "MENGAMBIL JOB..."
         btn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
         
+        local char = LP.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        
         -- ==========================================
         -- LANGKAH 1: TEMBAK REMOTE JOB
         -- ==========================================
         autoSelectJob() 
-        task.wait(2) -- 🔥 Jeda 2 detik: Biar server sempet ngasih ID Job baru
+        task.wait(2) -- Jeda 2 detik
         
         -- ==========================================
-        -- LANGKAH 2: FIRE STARTER PROMPT
+        -- LANGKAH 2: TELEPORT KE STARTER
         -- ==========================================
-        btn.Text = "FIRE STARTER..."
-        local starterPrompt = workspace:FindFirstChild("Etc") 
+        btn.Text = "KE STARTER..."
+        local starterPart = workspace:FindFirstChild("Etc") 
             and workspace.Etc:FindFirstChild("Job") 
             and workspace.Etc.Job:FindFirstChild("Truck") 
-            and workspace.Etc.Job.Truck:FindFirstChild("Starter") 
-            and workspace.Etc.Job.Truck.Starter:FindFirstChild("Prompt")
+            and workspace.Etc.Job.Truck:FindFirstChild("Starter")
             
-        if starterPrompt then
-            pcall(function() fireproximityprompt(starterPrompt) end)
-            print("✅ Starter Prompt Di-fire!")
+        if hrp and hum and starterPart then
+            -- Lepas dari kursi kalau lagi duduk
+            hum.Sit = false 
+            task.wait(0.2)
+            
+            -- Teleport ke Starter (dikasih +3 studs biar gak tenggelam)
+            hrp.CFrame = CFrame.new(starterPart.Position + Vector3.new(0, 3, 0))
+            task.wait(1) -- Jeda 1 detik biar game sadar player udah pindah
+            
+            -- Tetep tembak promptnya buat jaga-jaga
+            local prompt = starterPart:FindFirstChild("Prompt")
+            if prompt then pcall(function() fireproximityprompt(prompt) end) end
+            print("✅ Sampai di Starter & Prompt di-fire!")
         else
-            print("❌ Starter Prompt gak ketemu di path!")
+            print("❌ HRP atau Starter gak ketemu!")
         end
-        task.wait(2) -- 🔥 Jeda 2 detik: Biar UI game ngebaca kalo job udah di-start
+        task.wait(2) -- Jeda 2 detik
         
         -- ==========================================
-        -- LANGKAH 3: FIRE SPAWNER PROMPT (MUNCULIN MOBIL)
+        -- LANGKAH 3: TELEPORT KE SPAWNER.VISUAL
         -- ==========================================
-        btn.Text = "SPAWNING TRUCK..."
-        local spawnerPrompt = workspace:FindFirstChild("Etc") 
+        btn.Text = "KE SPAWNER..."
+        local spawnerVisual = workspace:FindFirstChild("Etc") 
             and workspace.Etc:FindFirstChild("Job") 
             and workspace.Etc.Job:FindFirstChild("Truck") 
             and workspace.Etc.Job.Truck:FindFirstChild("Spawner")
-            and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Part")
-            and workspace.Etc.Job.Truck.Spawner.Part:FindFirstChild("Prompt")
+            and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Visual")
             
-        if spawnerPrompt then
-            pcall(function() fireproximityprompt(spawnerPrompt) end)
-            print("✅ Spawner Prompt Di-fire! Mobil muncul.")
+        if hrp and spawnerVisual then
+            -- Teleport ke Spawner
+            hrp.CFrame = CFrame.new(spawnerVisual.Position + Vector3.new(0, 3, 0))
+            task.wait(1)
+            
+            -- Tembak promptnya (kalau ada)
+            local prompt = workspace.Etc.Job.Truck.Spawner.Part and workspace.Etc.Job.Truck.Spawner.Part:FindFirstChild("Prompt")
+            if prompt then pcall(function() fireproximityprompt(prompt) end) end
+            print("✅ Sampai di Spawner & Prompt di-fire!")
         else
-            print("❌ Spawner Prompt gak ketemu di path!")
+            print("❌ Spawner Visual gak ketemu!")
         end
-        task.wait(3) -- 🔥 Jeda 3 detik: Krusial! Tunggu mobil bener-bener ke-render di layar
+        task.wait(3) -- 🔥 Jeda 3 detik: Krusial buat nunggu mobil beneran muncul di depan lo
         
         -- ==========================================
-        -- LANGKAH 4: NAIKIN PLAYER KE MOBIL
+        -- LANGKAH 4: NAIK KE MOBIL
         -- ==========================================
         btn.Text = "NAIK KE MOBIL..."
-        local char = LP.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        
         if hum then
             local vehicles = workspace:FindFirstChild("Vehicles")
             local myCar = vehicles and vehicles:FindFirstChild(LP.Name .. "sCar") 
@@ -818,7 +833,7 @@ btn.MouseButton1Click:Connect(function()
                     print("✅ Berhasil duduk di:", driveSeat:GetFullName())
                 end)
                 
-                -- Tembak promptnya juga (jaga-jaga)
+                -- Tembak promptnya
                 local prompt = driveSeat:FindFirstChild("PromptDriveSeat")
                 if prompt then
                     pcall(function() fireproximityprompt(prompt) end)
@@ -827,7 +842,7 @@ btn.MouseButton1Click:Connect(function()
                 print("❌ Mobil gak ketemu di workspace.Vehicles!") 
             end
         end
-        task.wait(2) -- 🔥 Jeda 2 detik: Biar sistem game nyatet lo udah duduk (SeatPart gak nil)
+        task.wait(2) -- Jeda 2 detik biar sistem bener-bener nyatet lo udah duduk
         
         -- ==========================================
         -- LANGKAH 5: JALANIN AUTO FARM
