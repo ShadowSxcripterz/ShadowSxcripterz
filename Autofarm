@@ -804,35 +804,40 @@ btn.MouseButton1Click:Connect(function()
         -- LANGKAH 2: TWEEN KE STARTER
         -- ==========================================
         btn.Text = "MELUNCUR KE STARTER..."
-        local starterPrompt = workspace:FindFirstChild("Etc") 
-            and workspace.Etc:FindFirstChild("Job") 
-            and workspace.Etc.Job:FindFirstChild("Truck") 
-            and workspace.Etc.Job.Truck:FindFirstChild("Starter")
-            and workspace.Etc.Job.Truck.Starter:FindFirstChild("Prompt")
-            
-        if char and starterPrompt and starterPrompt:IsA("ProximityPrompt") then
-            local partInduk = starterPrompt.Parent
-            if partInduk and partInduk:IsA("BasePart") then
-                -- 🔥 TWEEN PLAYER (Durasi 3 detik)
-                tweenPlayerTo(partInduk.Position, 3) 
-                
-                -- Hack Prompt
-                starterPrompt.RequiresLineOfSight = false
-                starterPrompt.MaxActivationDistance = 100
-                
-                -- Fire Prompt
-                pcall(function() fireproximityprompt(starterPrompt) end)
-                print("✅ Starter Prompt Di-fire!")
-                
-                -- Balikin setting
-                task.wait(1)
-                starterPrompt.RequiresLineOfSight = true
-                starterPrompt.MaxActivationDistance = 10
-            end
-        else
-            print("❌ Starter Prompt gak ketemu / bukan ProximityPrompt!")
-        end
-        task.wait(2)
+        local starter = workspace:FindFirstChild("Etc") 
+    and workspace.Etc:FindFirstChild("Job") 
+    and workspace.Etc.Job:FindFirstChild("Truck") 
+    and workspace.Etc.Job.Truck:FindFirstChild("Starter")
+
+local starterPrompt = starter and starter:FindFirstChild("Prompt")
+
+if char and starter and starterPrompt and starterPrompt:IsA("ProximityPrompt") then
+    local pos = nil
+    if starter:IsA("BasePart") then 
+        pos = starter.Position
+    elseif starter:IsA("Model") then 
+        pos = starter:GetPivot().Position
+    else
+        local p = starter:FindFirstChildWhichIsA("BasePart", true)
+        if p then pos = p.Position end
+    end
+
+    if pos then
+        tweenPlayerTo(pos, 3) -- Panggil Tween dengan posisi yang bener
+
+        -- Hack Prompt & Fire
+        starterPrompt.RequiresLineOfSight = false
+        starterPrompt.MaxActivationDistance = 100
+        pcall(function() fireproximityprompt(starterPrompt) end)
+        print("✅ Starter Prompt Di-fire!")
+
+        task.wait(1)
+        starterPrompt.RequiresLineOfSight = true
+        starterPrompt.MaxActivationDistance = 10
+    end
+else
+    print("❌ Starter atau Prompt gak ketemu!")
+end
         
         -- ==========================================
         -- LANGKAH 3: TWEEN KE SPAWNER
