@@ -742,6 +742,44 @@ local function autoSelectJob()
     end)
 end
 
+-- 🔥 FUNGSI TWEEN PLAYER (SMOOTH WALK) 🔥
+local function tweenPlayerTo(targetPos, duration)
+    local char = LP.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if not char or not hrp then return end
+
+    -- Paksa berdiri dulu
+    if hum then
+        hum.Sit = false
+        hum.Jump = true
+        task.wait(0.2)
+    end
+
+    -- Setup CFrameValue buat animasi geser
+    local startCFrame = hrp.CFrame
+    local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 2.5, 0)) -- +2.5 studs biar gak nyangkut tanah
+    local cframeValue = Instance.new("CFrameValue")
+    cframeValue.Value = startCFrame
+
+    -- Begitu nilainya berubah, pindahin karakter
+    local conn = cframeValue.Changed:Connect(function(v)
+        if char and char.Parent then
+            char:PivotTo(v)
+        end
+    end)
+
+    -- Jalanin Tween pelan-pelan
+    local tween = TweenService:Create(cframeValue, TweenInfo.new(duration, Enum.EasingStyle.Linear), {Value = targetCFrame})
+    tween:Play()
+    tween.Completed:Wait()
+
+    -- Bersihin sisa-sisa
+    cframeValue:Destroy()
+    conn:Disconnect()
+    print("✅ Selesai meluncur ke tujuan!")
+end
+
         
             
 btn.MouseButton1Click:Connect(function()
@@ -760,57 +798,51 @@ btn.MouseButton1Click:Connect(function()
         
         local char = LP.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
         
         -- ==========================================
         -- LANGKAH 1: TEMBAK REMOTE JOB
         -- ==========================================
         autoSelectJob() 
-        task.wait(2) -- Jeda 2 detik
+        task.wait(2) 
         
         -- ==========================================
-        -- LANGKAH 2: TELEPORT & HACK STARTER PROMPT
+        -- LANGKAH 2: TWEEN KE STARTER
         -- ==========================================
-        btn.Text = "KE STARTER..."
+        btn.Text = "MELUNCUR KE STARTER..."
         local starterPrompt = workspace:FindFirstChild("Etc") 
             and workspace.Etc:FindFirstChild("Job") 
             and workspace.Etc.Job:FindFirstChild("Truck") 
             and workspace.Etc.Job.Truck:FindFirstChild("Starter")
             and workspace.Etc.Job.Truck.Starter:FindFirstChild("Prompt")
             
-        if hum and char and starterPrompt and starterPrompt:IsA("ProximityPrompt") then
-            hum.Sit = false 
-            hum.Jump = true
-            task.wait(0.5)
-            
-            -- 🔥 HACK PROMPT: Matiin LineOfSight & Jauhkan Jarak
-            starterPrompt.RequiresLineOfSight = false
-            starterPrompt.MaxActivationDistance = 100
-            
-            -- Teleport persis ke Part induknya
+        if char and starterPrompt and starterPrompt:IsA("ProximityPrompt") then
             local partInduk = starterPrompt.Parent
             if partInduk and partInduk:IsA("BasePart") then
-                char:MoveTo(partInduk.Position + Vector3.new(0, 2, 0))
+                -- 🔥 TWEEN PLAYER (Durasi 3 detik)
+                tweenPlayerTo(partInduk.Position, 3) 
+                
+                -- Hack Prompt
+                starterPrompt.RequiresLineOfSight = false
+                starterPrompt.MaxActivationDistance = 100
+                
+                -- Fire Prompt
+                pcall(function() fireproximityprompt(starterPrompt) end)
+                print("✅ Starter Prompt Di-fire!")
+                
+                -- Balikin setting
+                task.wait(1)
+                starterPrompt.RequiresLineOfSight = true
+                starterPrompt.MaxActivationDistance = 10
             end
-            task.wait(1)
-            
-            -- Fire Prompt
-            pcall(function() fireproximityprompt(starterPrompt) end)
-            print("✅ Starter Prompt Di-fire!")
-            
-            -- Balikin settingan awal biar game gak ngambek
-            task.wait(1)
-            starterPrompt.RequiresLineOfSight = true
-            starterPrompt.MaxActivationDistance = 10
         else
             print("❌ Starter Prompt gak ketemu / bukan ProximityPrompt!")
         end
-        task.wait(3) -- Jeda biar UI game ngebaca job udah di-start
+        task.wait(2)
         
         -- ==========================================
-        -- LANGKAH 3: TELEPORT & HACK SPAWNER PROMPT
+        -- LANGKAH 3: TWEEN KE SPAWNER
         -- ==========================================
-        btn.Text = "KE SPAWNER..."
+        btn.Text = "MELUNCUR KE SPAWNER..."
         local spawnerPrompt = workspace:FindFirstChild("Etc") 
             and workspace.Etc:FindFirstChild("Job") 
             and workspace.Etc.Job:FindFirstChild("Truck") 
@@ -819,29 +851,31 @@ btn.MouseButton1Click:Connect(function()
             and workspace.Etc.Job.Truck.Spawner.Part:FindFirstChild("Prompt")
             
         if char and spawnerPrompt and spawnerPrompt:IsA("ProximityPrompt") then
-            -- 🔥 HACK PROMPT SPAWNER JUGA
-            spawnerPrompt.RequiresLineOfSight = false
-            spawnerPrompt.MaxActivationDistance = 100
-            
             local partInduk = spawnerPrompt.Parent
             if partInduk and partInduk:IsA("BasePart") then
-                char:MoveTo(partInduk.Position + Vector3.new(0, 2, 0))
+                -- 🔥 TWEEN PLAYER (Durasi 3 detik)
+                tweenPlayerTo(partInduk.Position, 3)
+                
+                -- Hack Prompt
+                spawnerPrompt.RequiresLineOfSight = false
+                spawnerPrompt.MaxActivationDistance = 100
+                
+                -- Fire Prompt
+                pcall(function() fireproximityprompt(spawnerPrompt) end)
+                print("✅ Spawner Prompt Di-fire!")
+                
+                -- Balikin setting
+                task.wait(1)
+                spawnerPrompt.RequiresLineOfSight = true
+                spawnerPrompt.MaxActivationDistance = 10
             end
-            task.wait(1)
-            
-            pcall(function() fireproximityprompt(spawnerPrompt) end)
-            print("✅ Spawner Prompt Di-fire!")
-            
-            task.wait(1)
-            spawnerPrompt.RequiresLineOfSight = true
-            spawnerPrompt.MaxActivationDistance = 10
         else
             print("❌ Spawner Prompt gak ketemu / bukan ProximityPrompt!")
         end
-        task.wait(3) -- 🔥 Jeda 3 detik nunggu mobil muncul
+        task.wait(3) -- Jeda buat nunggu mobil muncul
         
         -- ==========================================
-        -- LANGKAH 4: NAIK KE MOBIL (DUDUK)
+        -- LANGKAH 4: NAIK KE MOBIL
         -- ==========================================
         btn.Text = "NAIK KE MOBIL..."
         if hum then
@@ -863,7 +897,7 @@ btn.MouseButton1Click:Connect(function()
                 print("❌ Mobil gak ketemu di workspace.Vehicles!") 
             end
         end
-        task.wait(2) -- Jeda biar sistem nyatet lo udah duduk
+        task.wait(2)
         
         -- ==========================================
         -- LANGKAH 5: JALANIN AUTO FARM LOOP
@@ -873,5 +907,4 @@ btn.MouseButton1Click:Connect(function()
         task.spawn(autoFarmLoop)
     end
 end)
-
 notify("🛡️ Anti-AFK aktif")
