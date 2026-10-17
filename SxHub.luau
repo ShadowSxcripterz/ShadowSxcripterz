@@ -298,6 +298,7 @@ Con(LP.CharacterAdded,function(ch)task.wait(1)local h=ch:WaitForChild("Humanoid"
 
 -- ====== VISUAL TAB ======
 Lbl(VsT.C,"👁 VISUAL")Div(VsT.C)
+local esp0n=false
 Tog(VsT.C,"Highlight ESP",false,function(v) espOn=v refreshEsp() end)
 -- ================================================
 -- ESP SYSTEM v3 — Full Customizable
@@ -305,7 +306,6 @@ Tog(VsT.C,"Highlight ESP",false,function(v) espOn=v refreshEsp() end)
 -- ================================================
 local Drawing = Drawing or nil
 
-local espOn=false
 local teamCheck=true
 local showTeam=false
 
@@ -629,9 +629,33 @@ if th and mh then mh.CFrame=th.CFrame*CFrame.new(0,0,3)end end
 end)
 Btn(MiT.C,"Rejoin Server",function()game:GetService("TeleportService"):Teleport(game.PlaceId,LP)end)
 Btn(MiT.C,"Server Hop",function()
-local TS=game:GetService("TeleportService")local H=game:GetService("HttpService")
-local o,r=pcall(function()return H:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))end)
-if o and r and r.data then for _,s in pairs(r.data)do if s.playing<s.maxPlayers and s.id~=game.JobId then TS:TeleportToPlaceInstance(game.PlaceId,s.id,LP)return end end end
+    local TS = game:GetService("TeleportService")
+    local H = game:GetService("HttpService")
+    local o, r = pcall(function()
+        return H:JSONDecode(game:HttpGet(
+            "https://games.roblox.com/v1/games/"..game.PlaceId..
+            "/servers/Public?sortOrder=Asc&limit=100"
+        ))
+    end)
+    if o and r and r.data then
+        local servers = {}
+        for _, s in pairs(r.data) do
+            if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                table.insert(servers, s.id)
+            end
+        end
+        if #servers > 0 then
+            local picked = servers[math.random(1, #servers)]
+            pcall(function()
+                TS:TeleportToPlaceInstance(game.PlaceId, picked, LP)
+            end)
+        else
+            -- fallback kalau gak ada server kosong
+            pcall(function()
+                TS:Teleport(game.PlaceId, LP)
+            end)
+        end
+    end
 end)
 Btn(MiT.C,"Reset Character",function()
 if LP.Character then local h=LP.Character:FindFirstChildOfClass("Humanoid")if h then h.Health=0 end end
