@@ -724,78 +724,9 @@ local function autoFarmLoop()
     end
 end
 
--- 🔥 FUNGSI TEMBAK REMOTE JOB (Cuma sekali) 🔥
-local function autoSelectJob()
-    print("🤖 Menembak Remote Event Job...")
-    pcall(function()
-        local jobRemote = ReplicatedStorage:FindFirstChild("NetworkContainer") 
-            and ReplicatedStorage.NetworkContainer:FindFirstChild("RemoteEvents") 
-            and ReplicatedStorage.NetworkContainer.RemoteEvents:FindFirstChild("Job")
-        
-        if jobRemote then
-            jobRemote:FireServer("Truck")
-            print("✅ Berhasil nembak Remote Job ('Truck')")
-            notify("✅ Job Truck Berhasil Diambil!")
-        else
-            print("❌ Remote Event 'Job' gak ketemu.")
-        end
-    end)
-end
 
-        btn.MouseButton1Click:Connect(function()
-    if isAutoFarming then
-        -- Pas di Stop
-        isAutoFarming = false
-        btn.Text = "MULAI AUTO FARMING"
-        btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
-        notify("🛑 Auto-Farming Dihentikan.")
-    else
-        -- Pas di Start
-        isAutoFarming = true
-        totalUptime = 0
-        btn.Text = "MENGAMBIL JOB..."
-        btn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+
         
-        local char = LP.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        
-        -- ==========================================
-        -- LANGKAH 1: TEMBAK REMOTE JOB
-        -- ==========================================
-        autoSelectJob() 
-        task.wait(2)
-        
-        -- ==========================================
-        -- LANGKAH 2: TELEPORT KE WAYPOINT
-        -- ==========================================
-        btn.Text = "KE WAYPOINT..."
-        local waypoint = workspace:FindFirstChild("Etc") 
-            and workspace.Etc:FindFirstChild("Waypoint") 
-            and workspace.Etc.Waypoint:FindFirstChild("Waypoint")
-            
-        if hrp and hum and waypoint then
-            hum.Sit = false 
-            task.wait(0.2)
-            
-            -- Teleport ke Waypoint
-            hrp.CFrame = CFrame.new(waypoint.Position + Vector3.new(0, 3, 0))
-            task.wait(1) 
-            print("✅ Sampai di Waypoint!")
-        else
-            print("❌ HRP atau Waypoint gak ketemu!")
-        end
-        task.wait(2)
-        
-        -- ==========================================
-        -- LANGKAH 3: TELEPORT KE SPAWNER.VISUAL & FIRE PROMPT
-        -- ==========================================
-        btn.Text = "KE SPAWNER..."
-        local spawnerVisual = workspace:FindFirstChild("Etc") 
-            and workspace.Etc:FindFirstChild("Job") 
-            and workspace.Etc.Job:FindFirstChild("Truck") 
-            and workspace.Etc.Job.Truck:FindFirstChild("Spawner")
-            and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Visual")
             
 btn.MouseButton1Click:Connect(function()
     if isAutoFarming then
