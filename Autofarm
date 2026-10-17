@@ -797,21 +797,101 @@ end
             and workspace.Etc.Job.Truck:FindFirstChild("Spawner")
             and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Visual")
             
-        if hrp and spawnerVisual then
-            -- Teleport ke Spawner
-            hrp.CFrame = CFrame.new(spawnerVisual.Position + Vector3.new(0, 3, 0))
+btn.MouseButton1Click:Connect(function()
+    if isAutoFarming then
+        -- Pas di Stop
+        isAutoFarming = false
+        btn.Text = "MULAI AUTO FARMING"
+        btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+        notify("🛑 Auto-Farming Dihentikan.")
+    else
+        -- Pas di Start
+        isAutoFarming = true
+        totalUptime = 0
+        btn.Text = "MENGAMBIL JOB..."
+        btn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        
+        local char = LP.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        
+        -- ==========================================
+        -- LANGKAH 1: TEMBAK REMOTE JOB
+        -- ==========================================
+        autoSelectJob() 
+        task.wait(2) -- Jeda 2 detik
+        
+        -- ==========================================
+        -- LANGKAH 2: TELEPORT & HACK STARTER PROMPT
+        -- ==========================================
+        btn.Text = "KE STARTER..."
+        local starterPrompt = workspace:FindFirstChild("Etc") 
+            and workspace.Etc:FindFirstChild("Job") 
+            and workspace.Etc.Job:FindFirstChild("Truck") 
+            and workspace.Etc.Job.Truck:FindFirstChild("Starter")
+            and workspace.Etc.Job.Truck.Starter:FindFirstChild("Prompt")
+            
+        if hum and char and starterPrompt and starterPrompt:IsA("ProximityPrompt") then
+            hum.Sit = false 
+            hum.Jump = true
+            task.wait(0.5)
+            
+            -- 🔥 HACK PROMPT: Matiin LineOfSight & Jauhkan Jarak
+            starterPrompt.RequiresLineOfSight = false
+            starterPrompt.MaxActivationDistance = 100
+            
+            -- Teleport persis ke Part induknya
+            local partInduk = starterPrompt.Parent
+            if partInduk and partInduk:IsA("BasePart") then
+                char:MoveTo(partInduk.Position + Vector3.new(0, 2, 0))
+            end
             task.wait(1)
             
-            -- Tembak promptnya
-            local prompt = workspace.Etc.Job.Truck.Spawner.Part and workspace.Etc.Job.Truck.Spawner.Part:FindFirstChild("Prompt")
-            if prompt then 
-                pcall(function() fireproximityprompt(prompt) end) 
-                print("✅ Prompt Spawner di-fire!")
-            end
+            -- Fire Prompt
+            pcall(function() fireproximityprompt(starterPrompt) end)
+            print("✅ Starter Prompt Di-fire!")
+            
+            -- Balikin settingan awal biar game gak ngambek
+            task.wait(1)
+            starterPrompt.RequiresLineOfSight = true
+            starterPrompt.MaxActivationDistance = 10
         else
-            print("❌ Spawner Visual gak ketemu!")
+            print("❌ Starter Prompt gak ketemu / bukan ProximityPrompt!")
         end
-        task.wait(3) -- Jeda 3 detik nunggu mobil muncul
+        task.wait(3) -- Jeda biar UI game ngebaca job udah di-start
+        
+        -- ==========================================
+        -- LANGKAH 3: TELEPORT & HACK SPAWNER PROMPT
+        -- ==========================================
+        btn.Text = "KE SPAWNER..."
+        local spawnerPrompt = workspace:FindFirstChild("Etc") 
+            and workspace.Etc:FindFirstChild("Job") 
+            and workspace.Etc.Job:FindFirstChild("Truck") 
+            and workspace.Etc.Job.Truck:FindFirstChild("Spawner")
+            and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Part")
+            and workspace.Etc.Job.Truck.Spawner.Part:FindFirstChild("Prompt")
+            
+        if char and spawnerPrompt and spawnerPrompt:IsA("ProximityPrompt") then
+            -- 🔥 HACK PROMPT SPAWNER JUGA
+            spawnerPrompt.RequiresLineOfSight = false
+            spawnerPrompt.MaxActivationDistance = 100
+            
+            local partInduk = spawnerPrompt.Parent
+            if partInduk and partInduk:IsA("BasePart") then
+                char:MoveTo(partInduk.Position + Vector3.new(0, 2, 0))
+            end
+            task.wait(1)
+            
+            pcall(function() fireproximityprompt(spawnerPrompt) end)
+            print("✅ Spawner Prompt Di-fire!")
+            
+            task.wait(1)
+            spawnerPrompt.RequiresLineOfSight = true
+            spawnerPrompt.MaxActivationDistance = 10
+        else
+            print("❌ Spawner Prompt gak ketemu / bukan ProximityPrompt!")
+        end
+        task.wait(3) -- 🔥 Jeda 3 detik nunggu mobil muncul
         
         -- ==========================================
         -- LANGKAH 4: NAIK KE MOBIL (DUDUK)
@@ -823,13 +903,11 @@ end
             local driveSeat = myCar and myCar:FindFirstChild("DriveSeat")
             
             if driveSeat then
-                -- Paksa duduk
                 pcall(function()
                     driveSeat:Sit(hum) 
                     print("✅ Berhasil duduk di:", driveSeat:GetFullName())
                 end)
                 
-                -- Tembak prompt kursinya
                 local prompt = driveSeat:FindFirstChild("PromptDriveSeat")
                 if prompt then
                     pcall(function() fireproximityprompt(prompt) end)
@@ -841,7 +919,7 @@ end
         task.wait(2) -- Jeda biar sistem nyatet lo udah duduk
         
         -- ==========================================
-        -- LANGKAH 5: JALANIN AUTO FARM
+        -- LANGKAH 5: JALANIN AUTO FARM LOOP
         -- ==========================================
         btn.Text = "STOP AUTO FARMING"
         notify("🚀 Auto-Farming Dimulai!")
