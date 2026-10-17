@@ -742,36 +742,49 @@ local function autoSelectJob()
     end)
 end
 
--- 🔥 FUNGSI TWEEN PLAYER (SMOOTH WALK) 🔥
+-- 🔥 FUNGSI TWEEN PLAYER (ANTI RUBBERBANDING & ANTI JATUH) 🔥
 local function tweenPlayerTo(targetPos, duration)
     local char = LP.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     if not char or not hrp then return end
 
+    -- 1. Paksa berdiri (biar gak nempel di kursi)
     if hum then
         hum.Sit = false
         hum.Jump = true
         task.wait(0.2)
     end
 
+    -- 2. BEKUKAN KARAKTER (INI KUNCI UTAMANYA!)
+    hrp.Anchored = true 
+    
     local startCFrame = hrp.CFrame
-    local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 2.5, 0))
+    local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
     local cframeValue = Instance.new("CFrameValue")
     cframeValue.Value = startCFrame
 
+    -- 3. Update posisi tiap frame
     local conn = cframeValue.Changed:Connect(function(v)
         if char and char.Parent then
             char:PivotTo(v)
         end
     end)
 
+    -- 4. Jalanin Tween
     local tween = TweenService:Create(cframeValue, TweenInfo.new(duration, Enum.EasingStyle.Linear), {Value = targetCFrame})
     tween:Play()
     tween.Completed:Wait()
 
+    -- 5. Bersih-bersih
     cframeValue:Destroy()
     conn:Disconnect()
+    
+    -- 6. LEPAS ANCHOR & RESET KECEPATAN (Biar gak mental)
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    hrp.AssemblyAngularVelocity = Vector3.zero
+    hrp.Anchored = false 
+    
     print("✅ Selesai meluncur ke tujuan!")
 end
 
