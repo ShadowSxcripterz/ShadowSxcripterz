@@ -342,7 +342,7 @@ local DROPS, FLAKES = 28, 22
 local drops, flakes = {}, {}
 for i = 1, DROPS do
     local f = make("Frame", {
-        Size = UDim2.new(0, 1, 0, 7), Rotation = 12, BorderSizePixel = 0,
+        Size = UDim2.new(0, 1, 0, 7), Rotation = -12, BorderSizePixel = 0,
         BackgroundColor3 = Color3.fromRGB(170, 205, 255), BackgroundTransparency = 1,
     }, banner)
     table.insert(drops, {f = f, x = rng:NextNumber(0, 300), off = rng:NextNumber(0, 100),
@@ -418,7 +418,7 @@ animConn = RunService.RenderStepped:Connect(function()
     -- hujan
     for _, d in ipairs(drops) do
         local y = (t * d.spd + d.off) % 105 - 8
-        d.f.Position = UDim2.fromOffset((d.x - y * 0.21) % 300, y)
+        d.f.Position = UDim2.fromOffset((d.x + y * 0.21) % 300, y)
         d.f.BackgroundTransparency = 1 - 0.65 * math.clamp((rainI - d.thr * 0.9) * 5, 0, 1)
     end
 
