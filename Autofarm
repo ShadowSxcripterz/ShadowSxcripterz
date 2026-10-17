@@ -115,10 +115,10 @@ for i = 1, 3 do
     table.insert(clouds, {f = c, off = rng:NextNumber(0, 340), spd = rng:NextNumber(6, 14)})
 end
 
--- Matahari & Bulan (dua objek terpisah, orbit lingkaran)
+-- Matahari & Bulan (orbit di belakang gedung)
 local sun = make("Frame", {
-    Size = UDim2.new(0, 16, 0, 16),
-    Position = UDim2.new(0.5, 0, 0, 28),
+    Size = UDim2.new(0, 18, 0, 18),
+    AnchorPoint = Vector2.new(0.5, 0.5),
     BackgroundColor3 = Color3.fromRGB(255, 238, 110),
     BorderSizePixel = 0,
 }, banner)
@@ -126,10 +126,9 @@ make("UICorner", {CornerRadius = UDim.new(1, 0)}, sun)
 
 local moon = make("Frame", {
     Size = UDim2.new(0, 16, 0, 16),
-    Position = UDim2.new(0.5, 0, 0, 28),
+    AnchorPoint = Vector2.new(0.5, 0.5),
     BackgroundColor3 = Color3.fromRGB(255, 245, 200),
     BorderSizePixel = 0,
-    Visible = false,  -- bulan sembunyi dulu
 }, banner)
 make("UICorner", {CornerRadius = UDim.new(1, 0)}, moon)
 local buildings = {}
@@ -282,84 +281,56 @@ closeBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ===== TEMA ENVIRONMENT: ORBIT MATAHARI/BULAN =====
-local THEMES = {
-    { -- SIANG
-        top = Color3.fromRGB(60, 150, 255),
-        bot = Color3.fromRGB(175, 228, 255),
-        bld = Color3.fromRGB(75, 90, 125),
-        road = Color3.fromRGB(62, 64, 72),
-        star = 0, win = 0, cloud = 0.9,
-        cloudCol = Color3.fromRGB(255, 255, 255),
-    },
-    { -- SORE
-        top = Color3.fromRGB(110, 55, 130),
-        bot = Color3.fromRGB(255, 145, 70),
-        bld = Color3.fromRGB(50, 28, 60),
-        road = Color3.fromRGB(46, 38, 50),
-        star = 0.3, win = 0.6, cloud = 0.6,
-        cloudCol = Color3.fromRGB(255, 185, 150),
-    },
-    { -- MALAM
-        top = Color3.fromRGB(45, 10, 90),
-        bot = Color3.fromRGB(10, 20, 60),
-        bld = Color3.fromRGB(18, 14, 35),
-        road = Color3.fromRGB(28, 28, 36),
-        star = 1, win = 1, cloud = 0,
-        cloudCol = Color3.fromRGB(120, 110, 160),
-    },
+local SIANG = {
+    top = Color3.fromRGB(60, 150, 255), bot = Color3.fromRGB(175, 228, 255),
+    bld = Color3.fromRGB(75, 90, 125), road = Color3.fromRGB(62, 64, 72),
+    star = 0, win = 0, cloud = 0.9, cloudCol = Color3.fromRGB(255, 255, 255),
+}
+local SORE = {
+    top = Color3.fromRGB(110, 55, 130), bot = Color3.fromRGB(255, 145, 70),
+    bld = Color3.fromRGB(50, 28, 60), road = Color3.fromRGB(46, 38, 50),
+    star = 0.3, win = 0.6, cloud = 0.6, cloudCol = Color3.fromRGB(255, 185, 150),
+}
+local MALAM = {
+    top = Color3.fromRGB(45, 10, 90), bot = Color3.fromRGB(10, 20, 60),
+    bld = Color3.fromRGB(18, 14, 35), road = Color3.fromRGB(28, 28, 36),
+    star = 1, win = 1, cloud = 0, cloudCol = Color3.fromRGB(120, 110, 160),
 }
 
-local CYCLE = 24          -- detik per putaran penuh (siang→sore→malam→siang)
-local CX, CY, R = 0.5, 1.15, 0.55  -- pusat & radius orbit
-local theta = 0
+-- urutan 1 putaran: terbit(sore) -> siang -> tenggelam(sore) -> malam -> terbit lagi
+local KEYS = {SORE, SIANG, SORE, MALAM}
+local CYCLE = 40                 -- detik per putaran penuh
+local CENTER_X, HORIZON = 144, 68 -- tengah banner (px) & garis cakrawala
+local ARC_X, ARC_Y = 150, 58      -- lebar & tinggi orbit (px)
 
-local function arc(t)
-    return UDim2.fromScale(CX - R * math.cos(t), CY - R * math.sin(t))
-end
-
-local function updateOrb(obj, t)
-    local s = math.sin(t)
-    if s <= 0 then
-        obj.Visible = false
-    else
-        obj.Visible = true
-        obj.BackgroundTransparency = 1 - math.clamp(s * 8, 0, 1)
-    end
-end
-
-local function themeFromAngle(t)
-    local m = t % (2 * math.pi)
-    if m < math.pi / 2 then
-        return 1, m / (math.pi / 2)                 -- SIANG → SORE
-    elseif m < math.pi then
-        return 2, (m - math.pi/2) / (math.pi/2)     -- SORE → MALAM
-    elseif m < 3 * math.pi / 2 then
-        return 3, (m - math.pi) / (math.pi/2)       -- MALAM
-    else
-        return 3, (m - 3*math.pi/2) / (math.pi/2)   -- MALAM → SIANG
-    end
+local function orbPos(a)
+    return UDim2.fromOffset(CENTER_X - ARC_X * math.cos(a), HORIZON - ARC_Y * math.sin(a))
 end
 
 local function lerpN(a, b, k) return a + (b - a) * k end
+local function smooth(k) return k * k * (3 - 2 * k) end
+
+local ORANGE = Color3.fromRGB(255, 140, 60)
+local YELLOW = Color3.fromRGB(255, 238, 110)
 
 local t0 = os.clock()
 local animConn
 animConn = RunService.RenderStepped:Connect(function()
     if not gui.Parent then animConn:Disconnect() return end
     local t = os.clock() - t0
-    theta = (t / CYCLE) * (2 * math.pi)
+    local u = (t % CYCLE) / CYCLE
+    local theta = u * 2 * math.pi
 
-    -- ☀️ 🌙 Orbit: matahari & bulan selalu 180° terpisah di lingkaran yang sama
-    sun.Position = arc(theta)
-    moon.Position = arc(theta + math.pi)
-    updateOrb(sun, theta)
-    updateOrb(moon, theta + math.pi)
+    -- matahari & bulan (selalu 180 derajat berlawanan)
+    sun.Position = orbPos(theta)
+    moon.Position = orbPos(theta + math.pi)
+    sun.BackgroundColor3 = ORANGE:Lerp(YELLOW, math.clamp(math.sin(theta) * 2.5, 0, 1))
 
-    -- Warna langit & environment ikut fase orbit
-    local idx, phase = themeFromAngle(theta)
-    local A = THEMES[idx]
-    local B = THEMES[idx % #THEMES + 1]
-    local k = phase
+    -- tema: 4 segmen nyambung mulus, tanpa loncat
+    local seg = math.floor(u * 4)
+    local k = smooth(u * 4 - seg)
+    local A = KEYS[seg + 1]
+    local B = KEYS[(seg + 1) % 4 + 1]
 
     skyGrad.Color = ColorSequence.new(A.top:Lerp(B.top, k), A.bot:Lerp(B.bot, k))
     road.BackgroundColor3 = A.road:Lerp(B.road, k)
@@ -384,7 +355,6 @@ animConn = RunService.RenderStepped:Connect(function()
         c.f.Position = UDim2.new(0, ((c.off + t * c.spd) % 360) - 50, 0, c.f.Position.Y.Offset)
     end
 
-    -- Elemen lain tetap kayak aslinya
     strokeGrad.Rotation = (t * 60) % 360
     for i, d in ipairs(dashes) do
         d.Position = UDim2.new(0, ((i - 1) * 40 + t * 70) % 320 - 30, 0, 10)
