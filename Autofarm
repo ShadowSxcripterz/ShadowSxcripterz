@@ -743,49 +743,87 @@ local function autoSelectJob()
 end
 
 -- 🔥 FUNGSI TWEEN PLAYER (ANTI RUBBERBANDING & ANTI JATUH) 🔥
-local function tweenPlayerTo(targetPos, duration)
-    local char = LP.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if not char or not hrp then return end
+local TweenService = game:GetService("TweenService")
+local LP = game:GetService("Players").LocalPlayer
+local Truck = workspace.Etc.Job.Truck
 
-    -- 1. Paksa berdiri (biar gak nempel di kursi)
-    if hum then
+local function getPos(obj)
+    if obj:IsA("BasePart") then return obj.Position end
+    if obj:IsA("Model") then return obj:GetPivot().Position end
+    local p = obj:FindFirstChildWhichIsA("BasePart", true)
+    return p and p.Position
+end
+
+local function waitFor(parent, name, timeout)
+    local t = 0
+    while t < timeout do
+        local o = parent:FindFirstChild(name)
+        if o then return o end
+        task.wait(0.25); t += 0.25
+    end
+end
+
+local function tweenTo(pos, dur)
+    local char = LP.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if not char or not hum then return false end
+
+    if hum.Sit then
         hum.Sit = false
         hum.Jump = true
         task.wait(0.2)
     end
 
-    -- 2. BEKUKAN KARAKTER (INI KUNCI UTAMANYA!)
-    hrp.Anchored = true 
-    
-    local startCFrame = hrp.CFrame
-    local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
-    local cframeValue = Instance.new("CFrameValue")
-    cframeValue.Value = startCFrame
-
-    -- 3. Update posisi tiap frame
-    local conn = cframeValue.Changed:Connect(function(v)
-        if char and char.Parent then
-            char:PivotTo(v)
-        end
+    local cv = Instance.new("CFrameValue")
+    cv.Value = char:GetPivot()
+    local conn = cv.Changed:Connect(function(v)
+        if char.Parent then char:PivotTo(v) end
     end)
-
-    -- 4. Jalanin Tween
-    local tween = TweenService:Create(cframeValue, TweenInfo.new(duration, Enum.EasingStyle.Linear), {Value = targetCFrame})
-    tween:Play()
-    tween.Completed:Wait()
-
-    -- 5. Bersih-bersih
-    cframeValue:Destroy()
+    local tw = TweenService:Create(cv, TweenInfo.new(dur, Enum.EasingStyle.Linear),
+        {Value = CFrame.new(pos + Vector3.new(0, 3, 0))})
+    tw:Play()
+    tw.Completed:Wait()
     conn:Disconnect()
-    
-    -- 6. LEPAS ANCHOR & RESET KECEPATAN (Biar gak mental)
-    hrp.AssemblyLinearVelocity = Vector3.zero
-    hrp.AssemblyAngularVelocity = Vector3.zero
-    hrp.Anchored = false 
-    
-    print("✅ Selesai meluncur ke tujuan!")
+    cv:Destroy()
+    return true
+end
+
+local function firePrompt(prompt)
+    prompt.RequiresLineOfSight = false
+    prompt.MaxActivationDistance = 100
+    local ok = pcall(function() fireproximityprompt(prompt) end)
+    return ok
+end
+
+-- 1. STARTER
+local starter = waitFor(Truck, "Starter", 5)
+local sPos = starter and getPos(starter)
+if not sPos then print("❌ Starter gak ketemu") return end
+
+tweenTo(sPos, 3)
+local sPrompt = starter:FindFirstChildWhichIsA("ProximityPrompt", true)
+if sPrompt then print("Starter fire:", firePrompt(sPrompt)) else print("❌ Starter prompt gak ada") end
+task.wait(1)
+
+-- 2. SPAWNER (nunggu ke-load dulu)
+local spawner = waitFor(Truck, "Spawner", 10)
+local spPos = spawner and getPos(spawner)
+if not spPos then print("❌ Spawner belum ke-load / gak ketemu") return end
+
+pcall(function() LP:RequestStreamAroundAsync(spPos, 5) end)
+tweenTo(spPos, 3)
+
+local spPrompt
+for i = 1, 20 do
+    spPrompt = spawner:FindFirstChildWhichIsA("ProximityPrompt", true)
+    if spPrompt then break end
+    task.wait(0.5)
+end
+
+if spPrompt then
+    print("Spawner fire:", firePrompt(spPrompt))
+else
+    print("❌ Spawner prompt gak muncul")
 end
 
         
