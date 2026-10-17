@@ -753,12 +753,20 @@ btn.MouseButton1Click:Connect(function()
         -- Pas di Start
         isAutoFarming = true
         totalUptime = 0
-        btn.Text = "STOP AUTO FARMING"
+        
+        -- Ubah text tombol jadi loading
+        btn.Text = "MENGAMBIL JOB..."
         btn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
         
-        -- 🔥 PANGGIL DI SINI (Cuma sekali pas start) 🔥
+        -- 1. Tembak Remote Job
         autoSelectJob() 
         
+        -- 🔥 2. KASIH JEDA DI SINI 🔥
+        -- Kasih waktu 2-3 detik biar server sempet nge-load Waypoint baru
+        task.wait(2.5) 
+        
+        -- 3. Baru mulai loop-nya
+        btn.Text = "STOP AUTO FARMING"
         notify("🚀 Auto-Farming Dimulai!")
         task.spawn(autoFarmLoop)
     end
