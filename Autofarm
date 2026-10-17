@@ -742,7 +742,7 @@ local function autoSelectJob()
     end)
 end
 
-btn.MouseButton1Click:Connect(function()
+    btn.MouseButton1Click:Connect(function()
     if isAutoFarming then
         -- Pas di Stop
         isAutoFarming = false
@@ -767,29 +767,24 @@ btn.MouseButton1Click:Connect(function()
         task.wait(2) -- Jeda 2 detik
         
         -- ==========================================
-        -- LANGKAH 2: TELEPORT KE STARTER
+        -- LANGKAH 2: TELEPORT KE WAYPOINT
         -- ==========================================
-        btn.Text = "KE STARTER..."
-        local starterPart = workspace:FindFirstChild("Etc") 
-            and workspace.Etc:FindFirstChild("Job") 
-            and workspace.Etc.Job:FindFirstChild("Truck") 
-            and workspace.Etc.Job.Truck:FindFirstChild("Starter")
+        btn.Text = "KE WAYPOINT..."
+        local waypoint = workspace:FindFirstChild("Etc") 
+            and workspace.Etc:FindFirstChild("Waypoint") 
+            and workspace.Etc.Waypoint:FindFirstChild("Waypoint")
             
-        if hrp and hum and starterPart then
+        if hrp and hum and waypoint then
             -- Lepas dari kursi kalau lagi duduk
             hum.Sit = false 
             task.wait(0.2)
             
-            -- Teleport ke Starter (dikasih +3 studs biar gak tenggelam)
-            hrp.CFrame = CFrame.new(starterPart.Position + Vector3.new(0, 3, 0))
+            -- Teleport ke Waypoint (dikasih +3 studs biar gak tenggelam)
+            hrp.CFrame = CFrame.new(waypoint.Position + Vector3.new(0, 3, 0))
             task.wait(1) -- Jeda 1 detik biar game sadar player udah pindah
-            
-            -- Tetep tembak promptnya buat jaga-jaga
-            local prompt = starterPart:FindFirstChild("Prompt")
-            if prompt then pcall(function() fireproximityprompt(prompt) end) end
-            print("✅ Sampai di Starter & Prompt di-fire!")
+            print("✅ Sampai di Waypoint!")
         else
-            print("❌ HRP atau Starter gak ketemu!")
+            print("❌ HRP atau Waypoint gak ketemu!")
         end
         task.wait(2) -- Jeda 2 detik
         
