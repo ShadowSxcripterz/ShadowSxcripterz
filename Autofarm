@@ -276,13 +276,13 @@ end)
 local THEMES = {
     { -- SIANG
         top = Color3.fromRGB(60, 150, 255), bot = Color3.fromRGB(175, 228, 255),
-        body = Color3.fromRGB(255, 238, 110), bx = 0.78, by = 8,
+        body = Color3.fromRGB(255, 238, 110), bx = 0.68, by = 8,
         bld = Color3.fromRGB(75, 90, 125), road = Color3.fromRGB(62, 64, 72),
         star = 0, win = 0, cloud = 0.9, cloudCol = Color3.fromRGB(255, 255, 255),
     },
     { -- SORE
         top = Color3.fromRGB(110, 55, 130), bot = Color3.fromRGB(255, 145, 70),
-        body = Color3.fromRGB(255, 185, 80), bx = 0.68, by = 46,
+        body = Color3.fromRGB(255, 185, 80), bx = 0.78, by = 46,
         bld = Color3.fromRGB(50, 28, 60), road = Color3.fromRGB(46, 38, 50),
         star = 0.3, win = 0.6, cloud = 0.6, cloudCol = Color3.fromRGB(255, 185, 150),
     },
