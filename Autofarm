@@ -744,13 +744,11 @@ end
 
     btn.MouseButton1Click:Connect(function()
     if isAutoFarming then
-        -- Pas di Stop
         isAutoFarming = false
         btn.Text = "MULAI AUTO FARMING"
         btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
         notify("🛑 Auto-Farming Dihentikan.")
     else
-        -- Pas di Start
         isAutoFarming = true
         totalUptime = 0
         btn.Text = "MENGAMBIL JOB..."
@@ -758,63 +756,68 @@ end
         
         local char = LP.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
         
         -- ==========================================
-        -- LANGKAH 1: TEMBAK REMOTE JOB
+        -- 1. TEMBAK REMOTE JOB
         -- ==========================================
         autoSelectJob() 
-        task.wait(2) -- Jeda 2 detik
+        task.wait(2) 
         
         -- ==========================================
+        -- 2. TELEPORT PLAYER KE STARTER
         -- ==========================================
--- LANGKAH 2: TELEPORT KE WAYPOINT (Atau Starter)
--- ==========================================
-btn.Text = "KE WAYPOINT..."
-local waypoint = workspace:FindFirstChild("Etc") 
-    and workspace.Etc:FindFirstChild("Waypoint") 
-    and workspace.Etc.Waypoint:FindFirstChild("Waypoint")
-    
-if hum and waypoint then
-    hum.Sit = false 
-    task.wait(0.2)
-    safeTeleportPlayer(waypoint.Position)
-    print("✅ Sampai di Waypoint!")
-else
-    print("❌ HRP atau Waypoint gak ketemu!")
-end
-
--- 🔥 JEDA DIPERPANJANG DI SINI 🔥
-task.wait(5) -- Kasih waktu 5 detik biar ProximityPrompt muncul sempurna
--- (Kalau 5 detik masih kurang, naikin jadi 6 atau 7)
-
--- ==========================================
--- LANGKAH 3: TELEPORT KE SPAWNER.VISUAL
--- ==========================================
-btn.Text = "KE SPAWNER..."
-local spawnerVisual = workspace:FindFirstChild("Etc") 
-    and workspace.Etc:FindFirstChild("Job") 
-    and workspace.Etc.Job:FindFirstChild("Truck") 
-    and workspace.Etc.Job.Truck:FindFirstChild("Spawner")
-    and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Visual")
-    
-if hrp and spawnerVisual then
-    safeTeleportPlayer(spawnerVisual.Position)
-    task.wait(1)
-    
-    -- Tembak promptnya (kalau ada)
-    local prompt = workspace.Etc.Job.Truck.Spawner.Part and workspace.Etc.Job.Truck.Spawner.Part:FindFirstChild("Prompt")
-    if prompt then pcall(function() fireproximityprompt(prompt) end) end
-    print("✅ Sampai di Spawner & Prompt di-fire!")
-else
-    print("❌ Spawner Visual gak ketemu!")
-end
-task.wait(3) -- 🔥 Jeda buat nunggu mobil muncul
+        btn.Text = "KE STARTER..."
+        local starter = workspace:FindFirstChild("Etc") 
+            and workspace.Etc:FindFirstChild("Job") 
+            and workspace.Etc.Job:FindFirstChild("Truck") 
+            and workspace.Etc.Job.Truck:FindFirstChild("Starter")
+            
+        if char and starter then
+            local pos = starter:IsA("BasePart") and starter.Position 
+                     or (starter:IsA("Model") and starter:GetPivot().Position) 
+                     or (starter:FindFirstChildWhichIsA("BasePart", true) and starter:FindFirstChildWhichIsA("BasePart", true).Position)
+            
+            if pos then
+                char:MoveTo(pos + Vector3.new(0, 3, 0)) 
+                print("✅ Player di-TP ke Starter")
+                
+                -- Tembak prompt Starter kalau ada
+                local prompt = starter:FindFirstChild("Prompt")
+                if prompt then pcall(function() fireproximityprompt(prompt) end) end
+            end
+        end
+        task.wait(4) -- 🔥 Jeda 4 detik: Biar prompt Starter muncul & ke-load
         
         -- ==========================================
+        -- 3. TELEPORT PLAYER KE SPAWNER.VISUAL
+        -- ==========================================
+        btn.Text = "KE SPAWNER..."
+        local spawner = workspace:FindFirstChild("Etc") 
+            and workspace.Etc:FindFirstChild("Job") 
+            and workspace.Etc.Job:FindFirstChild("Truck") 
+            and workspace.Etc.Job.Truck:FindFirstChild("Spawner")
+            and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Visual")
+            
+        if char and spawner then
+            local pos = spawner:IsA("BasePart") and spawner.Position 
+                     or (spawner:IsA("Model") and spawner:GetPivot().Position) 
+                     or (spawner:FindFirstChildWhichIsA("BasePart", true) and spawner:FindFirstChildWhichIsA("BasePart", true).Position)
+            
+            if pos then
+                char:MoveTo(pos + Vector3.new(0, 3, 0))
+                print("✅ Player di-TP ke Spawner")
+                
+                -- Tembak prompt Spawner
+                local promptPart = workspace.Etc.Job.Truck.Spawner:FindFirstChild("Part")
+                if promptPart and promptPart:FindFirstChild("Prompt") then 
+                    pcall(function() fireproximityprompt(promptPart.Prompt) end) 
+                end
+            end
+        end
+        task.wait(3) -- 🔥 Jeda 3 detik: Krusial buat nunggu mobil beneran muncul di map
         
         -- ==========================================
-        -- LANGKAH 4: NAIK KE MOBIL
+        -- 4. NAIK KE MOBIL (DUDUK)
         -- ==========================================
         btn.Text = "NAIK KE MOBIL..."
         if hum then
@@ -829,7 +832,7 @@ task.wait(3) -- 🔥 Jeda buat nunggu mobil muncul
                     print("✅ Berhasil duduk di:", driveSeat:GetFullName())
                 end)
                 
-                -- Tembak promptnya
+                -- Tembak promptnya juga
                 local prompt = driveSeat:FindFirstChild("PromptDriveSeat")
                 if prompt then
                     pcall(function() fireproximityprompt(prompt) end)
@@ -838,15 +841,14 @@ task.wait(3) -- 🔥 Jeda buat nunggu mobil muncul
                 print("❌ Mobil gak ketemu di workspace.Vehicles!") 
             end
         end
-        task.wait(2) -- Jeda 2 detik biar sistem bener-bener nyatet lo udah duduk
+        task.wait(2) -- Jeda 2 detik biar sistem bener-bener nyatet lo udah nempel di jok
         
         -- ==========================================
-        -- LANGKAH 5: JALANIN AUTO FARM
+        -- 5. JALANIN AUTO FARM LOOP
         -- ==========================================
         btn.Text = "STOP AUTO FARMING"
         notify("🚀 Auto-Farming Dimulai!")
         task.spawn(autoFarmLoop)
     end
 end)
-
 notify("🛡️ Anti-AFK aktif")
