@@ -749,32 +749,27 @@ local function tweenPlayerTo(targetPos, duration)
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     if not char or not hrp then return end
 
-    -- Paksa berdiri dulu
     if hum then
         hum.Sit = false
         hum.Jump = true
         task.wait(0.2)
     end
 
-    -- Setup CFrameValue buat animasi geser
     local startCFrame = hrp.CFrame
-    local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 2.5, 0)) -- +2.5 studs biar gak nyangkut tanah
+    local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 2.5, 0))
     local cframeValue = Instance.new("CFrameValue")
     cframeValue.Value = startCFrame
 
-    -- Begitu nilainya berubah, pindahin karakter
     local conn = cframeValue.Changed:Connect(function(v)
         if char and char.Parent then
             char:PivotTo(v)
         end
     end)
 
-    -- Jalanin Tween pelan-pelan
     local tween = TweenService:Create(cframeValue, TweenInfo.new(duration, Enum.EasingStyle.Linear), {Value = targetCFrame})
     tween:Play()
     tween.Completed:Wait()
 
-    -- Bersihin sisa-sisa
     cframeValue:Destroy()
     conn:Disconnect()
     print("✅ Selesai meluncur ke tujuan!")
