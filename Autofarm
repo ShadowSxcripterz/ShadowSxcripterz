@@ -483,6 +483,10 @@ else
     warn("❌ ProximityPrompt tidak ditemukan di Etc.Job.Truck.Starter")
     notify("Starter Prompt tidak ditemukan!")
 end
+-- Tunggu server memproses Starter sebelum lanjut
+task.wait(2)
+
+if not isAutoFarming then return end
 
         -- FASE 3: TWEEN KE SPAWNER
         btn.Text = "MELUNCUR KE SPAWNER..."
