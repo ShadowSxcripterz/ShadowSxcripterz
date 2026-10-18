@@ -11,6 +11,7 @@ local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local VirtualUser = game:GetService("VirtualUser")
+local TextService = game:GetService("TextService")
 local LP = Players.LocalPlayer
 
 local SAFE_TIME = 56.5
@@ -170,7 +171,7 @@ local helloLbl = make("TextLabel", {
     TextStrokeTransparency = 0.5, TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
 }, banner)
 
--- ===== PANEL KONTROL (kartu + tombol, pindah ke tengah pas full screen) =====
+-- ===== PANEL KONTROL =====
 local panel = make("Frame", {
     Size = UDim2.new(0, 300, 0, 360), BackgroundTransparency = 1, BorderSizePixel = 0,
 }, mainFrame)
@@ -184,8 +185,8 @@ local closeBtn = make("TextButton", {
 }, mainFrame)
 make("UICorner", {CornerRadius = UDim.new(0, 6)}, closeBtn)
 
--- ===== KARTU STATS =====
-local card = make("Frame", {
+-- ===== KARTU STATS (cuma muncul di mode menu kecil) =====
+local card = make("CanvasGroup", {
     Size = UDim2.new(1, -20, 0, 118), Position = UDim2.new(0, 10, 0, 106),
     BackgroundColor3 = Color3.fromRGB(22, 22, 34), BorderSizePixel = 0,
 }, panel)
@@ -206,34 +207,40 @@ local countdownLabel = row("Sisa Waktu: " .. SAFE_TIME .. "s", 31, Color3.fromRG
 local saldoLabel = row("Saldo: -", 58, Color3.fromRGB(100, 200, 255))
 local incomeLabel = row("Struk Terakhir: -", 85, Color3.fromRGB(255, 100, 100))
 
--- ===== KETINGGIAN =====
+-- ===== KONTROL (ketinggian + start/stop) =====
+local ctrl = make("Frame", {
+    Size = UDim2.new(1, 0, 0, 126), Position = UDim2.new(0, 0, 0, 228),
+    BackgroundColor3 = Color3.fromRGB(12, 12, 20), BackgroundTransparency = 1, BorderSizePixel = 0,
+}, panel)
+make("UICorner", {CornerRadius = UDim.new(0, 12)}, ctrl)
+
 make("TextLabel", {
-    Size = UDim2.new(1, -20, 0, 18), Position = UDim2.new(0, 10, 0, 232),
+    Size = UDim2.new(1, -20, 0, 18), Position = UDim2.new(0, 10, 0, 8),
     BackgroundTransparency = 1, Text = "Atur Ketinggian (Studs):", TextColor3 = Color3.fromRGB(180, 180, 200),
     Font = Enum.Font.GothamMedium, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left,
-}, panel)
+}, ctrl)
 
 local heightBox = make("TextBox", {
-    Size = UDim2.new(0.5, -15, 0, 32), Position = UDim2.new(0, 10, 0, 254),
+    Size = UDim2.new(0.5, -15, 0, 32), Position = UDim2.new(0, 10, 0, 30),
     BackgroundColor3 = Color3.fromRGB(30, 30, 46), TextColor3 = WHITE,
     Text = tostring(heightValue), PlaceholderText = "Angka...",
     Font = Enum.Font.GothamBold, TextSize = 14, ClearTextOnFocus = false,
-}, panel)
+}, ctrl)
 make("UICorner", {CornerRadius = UDim.new(0, 6)}, heightBox)
 
 local dirBtn = make("TextButton", {
-    Size = UDim2.new(0.5, -15, 0, 32), Position = UDim2.new(0.5, 5, 0, 254),
+    Size = UDim2.new(0.5, -15, 0, 32), Position = UDim2.new(0.5, 5, 0, 30),
     BackgroundColor3 = Color3.fromRGB(50, 150, 50), Text = "KE ATAS", TextColor3 = WHITE,
     Font = Enum.Font.GothamBold, TextSize = 14, AutoButtonColor = false,
-}, panel)
+}, ctrl)
 make("UICorner", {CornerRadius = UDim.new(0, 6)}, dirBtn)
 
 -- ===== START/STOP =====
 local btn = make("TextButton", {
-    Size = UDim2.new(1, -20, 0, 44), Position = UDim2.new(0, 10, 0, 300),
+    Size = UDim2.new(1, -20, 0, 44), Position = UDim2.new(0, 10, 0, 74),
     BackgroundColor3 = Color3.fromRGB(170, 0, 255), Text = "MULAI AUTO FARMING",
     TextColor3 = WHITE, Font = Enum.Font.GothamBold, TextSize = 15, AutoButtonColor = false,
-}, panel)
+}, ctrl)
 make("UICorner", {CornerRadius = UDim.new(0, 8)}, btn)
 
 -- ===== EFEK PRESS =====
@@ -250,6 +257,54 @@ local function addPress(button)
 end
 addPress(btn); addPress(dirBtn); addPress(closeBtn)
 
+-- ===== HUD CARD (pojok kiri atas, muncul pas full screen) =====
+local HUD_X, HUD_Y = 12, 72   -- geser kalau mau (HUD_Y = jarak dari atas layar)
+local HUD_W, HUD_H, HUD_GAP = 156, 40, 6
+
+local hudHolder = make("Frame", {
+    Name = "HUD", Position = UDim2.new(0, HUD_X, 0, HUD_Y),
+    Size = UDim2.new(0, HUD_W, 0, 3 * HUD_H + 2 * HUD_GAP),
+    BackgroundTransparency = 1, Active = false,
+}, gui)
+
+local hudCards = {}
+local function makeHudCard(i, title, accent, src)
+    local g = make("CanvasGroup", {
+        Size = UDim2.new(0, HUD_W, 0, HUD_H),
+        Position = UDim2.new(0, -(HUD_W + 20), 0, (i - 1) * (HUD_H + HUD_GAP)),
+        BackgroundColor3 = Color3.fromRGB(14, 14, 24), BackgroundTransparency = 0.12,
+        BorderSizePixel = 0, GroupTransparency = 1, Visible = false,
+    }, hudHolder)
+    make("UICorner", {CornerRadius = UDim.new(0, 8)}, g)
+    make("UIStroke", {Color = Color3.fromRGB(60, 60, 95), Thickness = 1}, g)
+    make("Frame", {Size = UDim2.new(0, 3, 1, 0), BackgroundColor3 = accent, BorderSizePixel = 0}, g)
+    make("TextLabel", {
+        Size = UDim2.new(1, -18, 0, 12), Position = UDim2.new(0, 12, 0, 5),
+        BackgroundTransparency = 1, Text = title, TextColor3 = Color3.fromRGB(150, 150, 185),
+        Font = Enum.Font.GothamMedium, TextSize = 10, TextXAlignment = Enum.TextXAlignment.Left,
+    }, g)
+    local val = make("TextLabel", {
+        Size = UDim2.new(1, -18, 0, 18), Position = UDim2.new(0, 12, 0, 18),
+        BackgroundTransparency = 1, Text = "-", TextColor3 = WHITE,
+        Font = Enum.Font.GothamBold, TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+    }, g)
+
+    -- cermin dari label asli (logic tetap nulis ke label lama, HUD ikut otomatis)
+    local function upd()
+        val.Text = src.Text:match("^[^:]*:%s*(.*)$") or src.Text
+        val.TextColor3 = src.TextColor3
+    end
+    src:GetPropertyChangedSignal("Text"):Connect(upd)
+    src:GetPropertyChangedSignal("TextColor3"):Connect(upd)
+    upd()
+
+    hudCards[i] = {g = g}
+end
+makeHudCard(1, "WAKTU FARMING", Color3.fromRGB(0, 255, 100), uptimeLabel)
+makeHudCard(2, "SISA WAKTU", Color3.fromRGB(255, 215, 0), countdownLabel)
+makeHudCard(3, "STRUK TERAKHIR", Color3.fromRGB(255, 100, 100), incomeLabel)
+
 -- ===== TRANSISI GUI KECIL <-> FULL SCREEN =====
 -- Otomatis: begitu isAutoFarming jadi true -> melebar full screen,
 -- begitu jadi false (stop / gagal) -> balik ke GUI kecil.
@@ -259,6 +314,7 @@ local animating = false
 local closing = false
 local smallPos = mainFrame.Position
 local activeTweens = {}
+local cardToken, hudToken = 0, 0
 
 mainFrame:GetPropertyChangedSignal("Position"):Connect(function()
     if not isFull and not animating then smallPos = mainFrame.Position end
@@ -276,9 +332,38 @@ local function cancelTweens()
     activeTweens = {}
 end
 
+local function showHud(on)
+    hudToken += 1
+    local my = hudToken
+    for i, c in ipairs(hudCards) do
+        local g = c.g
+        local y = (i - 1) * (HUD_H + HUD_GAP)
+        if on then
+            g.Visible = true
+            local d = 0.5 + (i - 1) * 0.1
+            tw(g, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, false, d), {Position = UDim2.new(0, 0, 0, y)})
+            tw(g, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, d), {GroupTransparency = 0})
+        else
+            tw(g, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, (i - 1) * 0.05),
+                {Position = UDim2.new(0, -(HUD_W + 20), 0, y), GroupTransparency = 1})
+        end
+    end
+    if not on then
+        task.delay(0.7, function()
+            if my == hudToken then
+                for _, c in ipairs(hudCards) do c.g.Visible = false end
+            end
+        end)
+    end
+end
+
+local CTRL_CENTER = (228 + 63) / 360 -- titik tengah panel kontrol (buat posisi di tengah layar)
+
 local function setFull(on)
     isFull = on
     cancelTweens()
+    cardToken += 1
+    local my = cardToken
     mainFrame.Draggable = false
     animating = true
 
@@ -287,17 +372,23 @@ local function setFull(on)
     local main
 
     if on then
+        mainFrame.Active = false -- sentuhan tembus ke game, tombol tetap bisa dipencet
         main = tw(mainFrame, info, {Size = UDim2.fromScale(1, 1), Position = UDim2.fromScale(0.5, 0.5)})
         tw(mainCorner, info, {CornerRadius = UDim.new(0, 0)})
         tw(stroke, info, {Transparency = 1})
         tw(banner, info, {Position = UDim2.new(0, 0, 0, 0), Size = UDim2.new(1, 0, 1, 0)})
         tw(bannerCorner, info, {CornerRadius = UDim.new(0, 0)})
-        tw(panel, info, {AnchorPoint = Vector2.new(0.5, 0.625), Position = UDim2.fromScale(0.5, 0.5)})
+        tw(panel, info, {AnchorPoint = Vector2.new(0.5, CTRL_CENTER), Position = UDim2.fromScale(0.5, 0.52)})
         tw(fullV, info, {Value = 1})
-        tw(card, soft, {BackgroundTransparency = 0.25})
-        local fit = math.clamp(gui.AbsoluteSize.Y / 380, 0.9, 1.4)
+        -- kartu stats di menu menghilang, diganti HUD pojok kiri atas
+        tw(card, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {GroupTransparency = 1})
+        task.delay(0.4, function() if my == cardToken then card.Visible = false end end)
+        tw(ctrl, soft, {BackgroundTransparency = 0.28})
+        local fit = math.clamp(gui.AbsoluteSize.Y / 420, 1, 1.3)
         tw(panelScale, TweenInfo.new(0.7, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, false, 0.35), {Scale = fit})
+        showHud(true)
     else
+        mainFrame.Active = true
         main = tw(mainFrame, info, {Size = UDim2.new(0, 300, 0, 360), Position = smallPos})
         tw(mainCorner, info, {CornerRadius = UDim.new(0, 12)})
         tw(stroke, info, {Transparency = 0})
@@ -305,8 +396,11 @@ local function setFull(on)
         tw(bannerCorner, info, {CornerRadius = UDim.new(0, 8)})
         tw(panel, info, {AnchorPoint = Vector2.new(0, 0), Position = UDim2.new(0, 0, 0, 0)})
         tw(fullV, info, {Value = 0})
-        tw(card, soft, {BackgroundTransparency = 0})
+        card.Visible = true
+        tw(card, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 0.3), {GroupTransparency = 0})
+        tw(ctrl, soft, {BackgroundTransparency = 1})
         tw(panelScale, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Scale = 1})
+        showHud(false)
     end
 
     -- efek "mantul" kecil di window
@@ -340,6 +434,92 @@ task.spawn(function()
     end
 end)
 
+-- ===== NOTIF DI ATAS GUI (selalu keliatan, termasuk notif gagal) =====
+local toastHolder = make("Frame", {
+    Name = "Toasts", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 14),
+    Size = UDim2.new(0.9, 0, 1, -28), BackgroundTransparency = 1, Active = false, ZIndex = 100,
+}, gui)
+make("UISizeConstraint", {MaxSize = Vector2.new(320, math.huge)}, toastHolder)
+make("UIListLayout", {
+    Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder,
+    HorizontalAlignment = Enum.HorizontalAlignment.Center, VerticalAlignment = Enum.VerticalAlignment.Top,
+}, toastHolder)
+
+local toastCount = 0
+local TOAST_RED = Color3.fromRGB(235, 60, 70)
+local TOAST_YELLOW = Color3.fromRGB(255, 190, 40)
+local TOAST_GREEN = Color3.fromRGB(60, 220, 120)
+local TOAST_CYAN = Color3.fromRGB(0, 200, 255)
+local TOAST_PURPLE = Color3.fromRGB(170, 90, 255)
+
+local function showToast(text, duration)
+    if closing or not gui.Parent then return end
+    text = tostring(text)
+    local dur = duration or 3
+    local accent = TOAST_PURPLE
+    if text:find("❌", 1, true) or text:find("🛑", 1, true) then
+        accent = TOAST_RED; dur = math.max(dur, 5)
+    elseif text:find("⚠", 1, true) then
+        accent = TOAST_YELLOW; dur = math.max(dur, 4)
+    elseif text:find("✅", 1, true) or text:find("🚀", 1, true) then
+        accent = TOAST_GREEN
+    elseif text:find("🔄", 1, true) or text:find("⏳", 1, true) then
+        accent = TOAST_CYAN
+    end
+
+    toastCount += 1
+    local holderW = toastHolder.AbsoluteSize.X
+    if holderW < 100 then holderW = 300 end
+    local ts = TextService:GetTextSize(text, 13, Enum.Font.GothamMedium, Vector2.new(holderW - 30, 1000))
+    local h = math.max(40, ts.Y + 22)
+
+    local wrapper = make("Frame", {
+        Name = "ToastWrap", Size = UDim2.new(1, 0, 0, h), BackgroundTransparency = 1,
+        LayoutOrder = -toastCount, ZIndex = 100, Active = false,
+    }, toastHolder)
+
+    local inner = make("CanvasGroup", {
+        Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(0, 0, 0, -22),
+        BackgroundColor3 = Color3.fromRGB(16, 16, 26), BorderSizePixel = 0,
+        GroupTransparency = 1, ZIndex = 100,
+    }, wrapper)
+    make("UICorner", {CornerRadius = UDim.new(0, 10)}, inner)
+    make("UIStroke", {Color = accent, Thickness = 1.5, Transparency = 0.35}, inner)
+    make("Frame", {Size = UDim2.new(0, 4, 1, 0), BackgroundColor3 = accent, BorderSizePixel = 0, ZIndex = 101}, inner)
+    make("TextLabel", {
+        Size = UDim2.new(1, -24, 1, 0), Position = UDim2.new(0, 16, 0, 0),
+        BackgroundTransparency = 1, Text = text, TextColor3 = WHITE, TextWrapped = true,
+        Font = Enum.Font.GothamMedium, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 101,
+    }, inner)
+    local bar = make("Frame", {
+        Size = UDim2.new(1, 0, 0, 2), AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3 = accent, BorderSizePixel = 0, ZIndex = 102,
+    }, inner)
+
+    -- maksimal 4 notif sekaligus, yang paling lama dibuang
+    local waps = {}
+    for _, c in ipairs(toastHolder:GetChildren()) do
+        if c.Name == "ToastWrap" then table.insert(waps, c) end
+    end
+    if #waps > 4 then
+        table.sort(waps, function(a, b) return a.LayoutOrder > b.LayoutOrder end)
+        waps[1]:Destroy()
+    end
+
+    TweenService:Create(inner, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)}):Play()
+    TweenService:Create(inner, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {GroupTransparency = 0}):Play()
+    TweenService:Create(bar, TweenInfo.new(dur, Enum.EasingStyle.Linear), {Size = UDim2.new(0, 0, 0, 2)}):Play()
+
+    task.delay(dur, function()
+        if not inner.Parent then return end
+        local o = TweenService:Create(inner, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+            {GroupTransparency = 1, Position = UDim2.new(0, 0, 0, -14)})
+        o:Play()
+        o.Completed:Wait()
+        if wrapper.Parent then wrapper:Destroy() end
+    end)
+end
+
 -- ===== LOGIC TOMBOL X (destroy script) =====
 closeBtn.MouseButton1Click:Connect(function()
     closing = true
@@ -349,6 +529,7 @@ closeBtn.MouseButton1Click:Connect(function()
     local t = TweenService:Create(popScale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Scale = 0})
     t.Completed:Connect(function() gui:Destroy() end)
     t:Play()
+    for _, c in ipairs(hudCards) do c.g.Visible = false end
 end)
 
 -- ===== TEMA ENVIRONMENT: ORBIT + CUACA =====
@@ -428,7 +609,7 @@ local lastS = -1
 local function applyScale(S)
     if lastS > 0 and math.abs(S - lastS) < 0.02 then return end
     lastS = S
-    local s2 = math.clamp(S ^ 0.6, 1, 2.2)
+    local s2 = math.clamp(S ^ 0.6, 1, 1.5)
     local px = math.max(2, math.floor(2 * S + 0.5))
 
     for _, s in ipairs(stars) do s.f.Size = UDim2.fromOffset(px, px) end
@@ -554,26 +735,75 @@ end)
 -- ========================================================
 -- 2. LOGIC TIMER & BCA TRACKER
 -- ========================================================
-local function readLastIncome()
-    local ok, income = pcall(function()
-        local phone = LP.PlayerGui:FindFirstChild("ACTUAL NEW PHONE")
-        if not phone or not phone.Enabled then return "HP Tertutup" end
-        local transList = phone.Container.Holder.AppContainer.MyBca.AccountTransactions.AmountForm.TransList
-        local transItem = transList:FindFirstChild("TransItem")
-        if not transItem then return "Belum ada TransItem" end
-        local amountObj = transItem:FindFirstChild("Amount")
-        if not amountObj then return "Amount Gak Ketemu" end
-        if amountObj:IsA("TextLabel") then return amountObj.Text
-        elseif amountObj:IsA("ValueBase") then return tostring(amountObj.Value) end
-        return tostring(amountObj.Text or amountObj.Value or "?")
+
+-- ===== DETEKSI STRUK BARU =====
+-- Alurnya: sebelum jalan, foto isi TransList (snapshot). Pas udah sampai tujuan,
+-- nunggu sampai ada TransItem BARU (atau isinya berubah), baru amount-nya dibaca.
+local knownTrans = {}
+
+local function getTransList()
+    local ok, list = pcall(function()
+        return LP.PlayerGui["ACTUAL NEW PHONE"].Container.Holder.AppContainer.MyBca.AccountTransactions.AmountForm.TransList
     end)
-    if ok then
-        incomeLabel.Text = "Struk Terakhir: " .. tostring(income)
-        incomeLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
-    else
-        incomeLabel.Text = "Struk Terakhir: (Gagal baca)"
-        incomeLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    if ok then return list end
+    return nil
+end
+
+local function amountOf(item)
+    local a = item:FindFirstChild("Amount")
+    if not a then return nil end
+    if a:IsA("TextLabel") or a:IsA("TextButton") or a:IsA("TextBox") then return a.Text end
+    if a:IsA("ValueBase") then return tostring(a.Value) end
+    local ok, v = pcall(function() return a.Text or a.Value end)
+    if ok and v ~= nil then return tostring(v) end
+    return nil
+end
+
+local function snapshotTransactions()
+    knownTrans = {}
+    local list = getTransList()
+    if not list then return end
+    for _, c in ipairs(list:GetChildren()) do
+        if c.Name == "TransItem" then knownTrans[c] = amountOf(c) or "" end
     end
+end
+
+local function findNewTransaction()
+    local list = getTransList()
+    if not list then return nil end
+    for _, c in ipairs(list:GetChildren()) do
+        if c.Name == "TransItem" then
+            local prev = knownTrans[c]
+            local cur = amountOf(c)
+            if prev == nil then
+                return c -- item baru muncul
+            elseif cur and cur ~= "" and cur ~= prev then
+                return c -- item lama dipakai ulang, isinya berubah
+            end
+        end
+    end
+    return nil
+end
+
+-- tunggu teks Amount udah keisi dan stabil (dua kali baca sama) sebelum dipakai
+local function readStableAmount(item)
+    task.wait(0.3)
+    local deadline = os.clock() + 3
+    local last
+    while os.clock() < deadline and isAutoFarming do
+        local cur = amountOf(item)
+        if cur and cur ~= "" then
+            if cur == last then return cur end
+            last = cur
+        end
+        task.wait(0.25)
+    end
+    return last
+end
+
+local function showIncome(text)
+    incomeLabel.Text = "Struk Terakhir: " .. tostring(text)
+    incomeLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
 end
 
 task.spawn(function()
@@ -620,7 +850,10 @@ end)
 -- 3. CORE FUNCTIONS
 -- ========================================================
 local function notify(text, duration)
-    pcall(function() StarterGui:SetCore("SendNotification", {Title = "Auto-Pilot", Text = text, Duration = duration or 3}) end)
+    local ok = pcall(showToast, text, duration)
+    if not ok then
+        pcall(function() StarterGui:SetCore("SendNotification", {Title = "Auto-Pilot", Text = text, Duration = duration or 3}) end)
+    end
 end
 
 local function getDestinationPos()
@@ -843,17 +1076,29 @@ end
 -- ========================================================
 local function autoFarmLoop()
     while isAutoFarming do
+        snapshotTransactions() -- foto isi struk SEBELUM jalan, buat bedain struk baru
         executeTeleport()
         while isTeleporting and isAutoFarming do task.wait(1) end
         
         if isAutoFarming then
             notify("⏳ Sampai tujuan! Menunggu 5 detik...")
             btn.Text = "JEDA 5s..."
-            local waited = 0
-            while waited < PAUSE_TIME and isAutoFarming do
-                readLastIncome()
-                task.wait(0.5)
-                waited += 0.5
+            local pauseStart = os.clock()
+            local gotIncome = false
+            while os.clock() - pauseStart < PAUSE_TIME and isAutoFarming do
+                if not gotIncome then
+                    local item = findNewTransaction()
+                    if item then
+                        gotIncome = true
+                        local txt = readStableAmount(item)
+                        if txt then showIncome(txt) end
+                    end
+                end
+                task.wait(0.2)
+            end
+            -- kalau gak ada struk baru, nilai lama dibiarin tapi diabuin biar keliatan basi
+            if not gotIncome and isAutoFarming then
+                incomeLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
             end
             if isAutoFarming then btn.Text = "STOP AUTO FARMING" end
         end
@@ -1010,6 +1255,8 @@ end
 task.wait(2)
 if not isAutoFarming then return end
 
+
+        
 -- FASE 3: MENUJU SPAWNER PART DAN FIRE PROMPT
 btn.Text = "MENUJU SPAWNER..."
 
@@ -1191,4 +1438,3 @@ afkConn = LP.Idled:Connect(function()
         VirtualUser:ClickButton2(Vector2.new())
     end)
 end)
-        
