@@ -527,26 +527,117 @@ task.wait(2)
 if not isAutoFarming then return end
 
 
-        -- FASE 3: TWEEN KE SPAWNER
-        btn.Text = "MELUNCUR KE SPAWNER..."
-        local spawner = workspace:FindFirstChild("Etc") and workspace.Etc:FindFirstChild("Job") and workspace.Etc.Job:FindFirstChild("Truck") and workspace.Etc.Job.Truck:FindFirstChild("Spawner") and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Visual")
-        if spawner and hrp and char then
-            local targetPos = nil
-            if spawner:IsA("BasePart") then targetPos = spawner.Position
-            elseif spawner:IsA("Model") then targetPos = spawner:GetPivot().Position
-            else
-                local p = spawner:FindFirstChildWhichIsA("BasePart", true)
-                if p then targetPos = p.Position end
-            end
-            if targetPos then
-                tweenPlayerTo(targetPos, 3)
-                if not isAutoFarming then return end
-                local spawnerPrompt = workspace.Etc.Job.Truck.Spawner.Part and workspace.Etc.Job.Truck.Spawner.Part:FindFirstChild("Prompt")
-                if spawnerPrompt then firePrompt(spawnerPrompt) end
-            end
-        end
-        task.wait(3)
-        if not isAutoFarming then return end
+        
+-- FASE 3: MENUJU SPAWNER PART DAN FIRE PROMPT
+btn.Text = "MENUJU SPAWNER..."
+
+local spawnerPart = workspace:FindFirstChild("Etc")
+    and workspace.Etc:FindFirstChild("Job")
+    and workspace.Etc.Job:FindFirstChild("Truck")
+    and workspace.Etc.Job.Truck:FindFirstChild("Spawner")
+    and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Part")
+
+if not spawnerPart or not spawnerPart:IsA("BasePart") then
+    warn("❌ Spawner.Part tidak ditemukan!")
+    notify("Spawner.Part tidak ditemukan!")
+    isAutoFarming = false
+    btn.Text = "MULAI AUTO FARMING"
+    btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+    return
+end
+
+-- Tween langsung menuju Spawner.Part
+local ok, err = pcall(function()
+    tweenPlayerTo(spawnerPart.Position, 3)
+end)
+
+if not ok then
+    warn("❌ Tween ke Spawner gagal:", err)
+    isAutoFarming = false
+    btn.Text = "MULAI AUTO FARMING"
+    btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+    return
+end
+
+if not isAutoFarming then return end
+
+-- Ambil prompt dari path yang tepat
+local spawnerPrompt = spawnerPart:FindFirstChild("Prompt")
+
+if not spawnerPrompt or not spawnerPrompt:IsA("ProximityPrompt") then
+    warn("❌ Spawner.Part.Prompt tidak ditemukan!")
+    notify("Spawner Prompt tidak ditemukan!")
+    isAutoFarming = false
+    btn.Text = "MULAI AUTO FARMING"
+    btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+    return
+end
+
+print("🔍 Spawner Prompt ketemu:", spawnerPrompt:GetFullName())
+
+-- Simpan properti awal
+local oldLOS = spawnerPrompt.RequiresLineOfSight
+local oldDistance = spawnerPrompt.MaxActivationDistance
+
+-- Persiapkan prompt seperti pada Starter
+pcall(function()
+    spawnerPrompt.RequiresLineOfSight = false
+    spawnerPrompt.MaxActivationDistance = 100
+end)
+
+-- Berdiri sebelum mendekati prompt
+local char = LP.Character
+local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+if hum then
+    hum.Sit = false
+    hum.Jump = true
+    task.wait(0.5)
+end
+
+-- Dekatkan karakter ke part induk prompt
+char = LP.Character
+if char then
+    char:MoveTo(spawnerPart.Position)
+end
+
+task.wait(1)
+
+if not isAutoFarming then
+    pcall(function()
+        spawnerPrompt.RequiresLineOfSight = oldLOS
+        spawnerPrompt.MaxActivationDistance = oldDistance
+    end)
+    return
+end
+
+-- Fire Spawner Prompt
+btn.Text = "MENGAKTIFKAN SPAWNER..."
+print("🔥 Mencoba fire Spawner Prompt...")
+
+local success, err = pcall(function()
+    fireproximityprompt(spawnerPrompt)
+end)
+
+if not success then
+    warn("❌ Fire Spawner gagal:", err)
+else
+    print("✅ Spawner Prompt dipanggil!")
+end
+
+-- Beri waktu server memproses interaksi
+task.wait(2)
+
+-- Pulihkan properti prompt
+pcall(function()
+    spawnerPrompt.RequiresLineOfSight = oldLOS
+    spawnerPrompt.MaxActivationDistance = oldDistance
+end)
+
+if not isAutoFarming then return end
+
+-- FASE 4: NAIK KE MOBIL (WAJIB DUDUK)
+
 
         -- FASE 4: NAIK KE MOBIL (WAJIB DUDUK)
         btn.Text = "NAIK KE MOBIL..."
