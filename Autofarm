@@ -411,69 +411,123 @@ if not char or not hum or not hrp then
     btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
     return
 end
-        -- FASE 2: TWEEN KE STARTER (LOGIC SIMPLE SCRIPT)
-        -- ==========================================
-        btn.Text = "MELUNCUR KE STARTER..."
-        
-        if hum then
-            hum.Sit = false
-            hum.Jump = true
-            task.wait(0.2)
-        end
+        -- FASE 2: TWEEN KE STARTER (FIX CHARACTER REF)
+btn.Text = "MELUNCUR KE STARTER..."
 
-        local starter = workspace:FindFirstChild("Etc") 
-            and workspace.Etc:FindFirstChild("Job") 
-            and workspace.Etc.Job:FindFirstChild("Truck") 
-            and workspace.Etc.Job.Truck:FindFirstChild("Starter")
-            
-        if starter and hrp and char then
-            -- Ambil posisi Starter
-            local targetPos = nil
-            if starter:IsA("BasePart") then 
-                targetPos = starter.Position
-            elseif starter:IsA("Model") then 
-                targetPos = starter:GetPivot().Position
-            else
-                local p = starter:FindFirstChildWhichIsA("BasePart", true)
-                if p then targetPos = p.Position end
-            end
+-- Tunggu Starter tersedia setelah job dipilih
+local starter
+for i = 1, 20 do
+    if not isAutoFarming then return end
 
-            if targetPos then
-                print("🚀 Mulai meluncur ke Starter...")
-                local startCFrame = hrp.CFrame
-                local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
-                local cframeValue = Instance.new("CFrameValue")
-                cframeValue.Value = startCFrame
+    local etc = workspace:FindFirstChild("Etc")
+    local job = etc and etc:FindFirstChild("Job")
+    local truckJob = job and job:FindFirstChild("Truck")
+    starter = truckJob and truckJob:FindFirstChild("Starter")
 
-                local conn = cframeValue.Changed:Connect(function(v)
-                    if char and char.Parent then
-                        char:PivotTo(v)
-                    end
-                end)
+    if starter then break end
+    task.wait(0.5)
+end
 
-                local tween = TweenService:Create(cframeValue, TweenInfo.new(3, Enum.EasingStyle.Linear), {Value = targetCFrame})
-                tween:Play()
-                tween.Completed:Wait()
+if not starter then
+    warn("Starter tidak ditemukan setelah menunggu!")
+    notify("Starter belum ditemukan!")
 
-                cframeValue:Destroy()
-                conn:Disconnect()
-                print("✅ Sampai di Starter!")
+    isAutoFarming = false
+    btn.Text = "MULAI AUTO FARMING"
+    btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+    return
+end
 
-                -- Fire Prompt Starter
-                if not isAutoFarming then return end
-                local starterPrompt = starter:FindFirstChild("Prompt")
-                if starterPrompt then 
-                    firePrompt(starterPrompt)
-                    print("✅ Starter Prompt Di-fire!")
-                end
-            else
-                print("❌ Posisi Starter gak ketemu!")
-            end
-        else
-            print("❌ Starter gak ketemu bro!")
-        end
-        task.wait(2)
-        if not isAutoFarming then return end
+-- Ambil karakter TERBARU
+char = LP.Character or LP.CharacterAdded:Wait()
+hum = char:WaitForChild("Humanoid", 5)
+hrp = char:WaitForChild("HumanoidRootPart", 5)
+
+if not char or not hum or not hrp then
+    warn("Humanoid/HRP tidak ditemukan!")
+
+    isAutoFarming = false
+    btn.Text = "MULAI AUTO FARMING"
+    btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+    return
+end
+
+-- Lepaskan kondisi duduk
+hum.Sit = false
+hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+task.wait(0.4)
+
+-- Ambil posisi Starter
+local targetPos
+
+if starter:IsA("BasePart") then
+    targetPos = starter.Position
+elseif starter:IsA("Model") then
+    targetPos = starter:GetPivot().Position
+else
+    local part = starter:FindFirstChildWhichIsA("BasePart", true)
+    if part then
+        targetPos = part.Position
+    end
+end
+
+if not targetPos then
+    warn("Posisi Starter tidak ditemukan!")
+    notify("Posisi Starter tidak ditemukan!")
+    return
+end
+
+print("🚀 Mulai tween ke Starter...")
+notify("Bergerak menuju Starter...")
+
+local targetCFrame = CFrame.new(
+    targetPos + Vector3.new(0, 3, 0)
+)
+
+local cframeValue = Instance.new("CFrameValue")
+cframeValue.Value = hrp.CFrame
+
+-- Selalu gerakkan karakter yang sedang aktif
+local conn = cframeValue:GetPropertyChangedSignal("Value"):Connect(function()
+    local currentChar = LP.Character
+
+    if currentChar and currentChar.Parent then
+        currentChar:PivotTo(cframeValue.Value)
+    end
+end)
+
+local tween = TweenService:Create(
+    cframeValue,
+    TweenInfo.new(3, Enum.EasingStyle.Linear),
+    {Value = targetCFrame}
+)
+
+tween:Play()
+tween.Completed:Wait()
+
+-- Pastikan posisi akhir tepat
+local currentChar = LP.Character
+if currentChar and currentChar.Parent then
+    currentChar:PivotTo(targetCFrame)
+end
+
+conn:Disconnect()
+cframeValue:Destroy()
+
+print("✅ Tween ke Starter selesai!")
+
+if not isAutoFarming then return end
+
+-- Cari Prompt sampai ke dalam semua turunan
+local starterPrompt =
+    starter:FindFirstChildWhichIsA("ProximityPrompt", true)
+
+if starterPrompt then
+    firePrompt(starterPrompt)
+    print("✅ Starter Prompt diproses!")
+else
+    warn("ProximityPrompt tidak ditemukan di Starter!")
+end
 
         -- FASE 3: TWEEN KE SPAWNER
         btn.Text = "MELUNCUR KE SPAWNER..."
