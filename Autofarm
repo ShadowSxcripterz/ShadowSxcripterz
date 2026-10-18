@@ -458,24 +458,32 @@ end
 
 if not isAutoFarming then return end
 
--- Cari prompt pada Waypoint atau turunannya
-local prompt = waypoint:FindFirstChildWhichIsA(
-    "ProximityPrompt", true
-)
 
-if not prompt then
-    prompt = waypointFolder:FindFirstChildWhichIsA(
-        "ProximityPrompt", true
-    )
-end
+-- CARI PROMPT STARTER YANG BENAR
+local truckJob = workspace:FindFirstChild("Etc")
+    and workspace.Etc:FindFirstChild("Job")
+    and workspace.Etc.Job:FindFirstChild("Truck")
 
-if prompt then
-    firePrompt(prompt)
-    print("✅ Waypoint Prompt di-fire!")
+local starter = truckJob
+    and truckJob:FindFirstChild("Starter")
+
+local prompt = starter
+    and starter:FindFirstChild("Prompt", true)
+
+if prompt and prompt:IsA("ProximityPrompt") then
+    local success = firePrompt(prompt)
+
+    if success then
+        print("✅ Starter Prompt dipanggil:", prompt:GetFullName())
+    else
+        warn("❌ Gagal memanggil Starter Prompt")
+        notify("Starter Prompt gagal!")
+    end
 else
-    warn("ProximityPrompt tidak ditemukan di Waypoint!")
-    notify("Prompt Waypoint tidak ditemukan!")
+    warn("❌ ProximityPrompt tidak ditemukan di Etc.Job.Truck.Starter")
+    notify("Starter Prompt tidak ditemukan!")
 end
+
         -- FASE 3: TWEEN KE SPAWNER
         btn.Text = "MELUNCUR KE SPAWNER..."
         local spawner = workspace:FindFirstChild("Etc") and workspace.Etc:FindFirstChild("Job") and workspace.Etc.Job:FindFirstChild("Truck") and workspace.Etc.Job.Truck:FindFirstChild("Spawner") and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Visual")
