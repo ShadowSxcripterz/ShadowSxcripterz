@@ -1001,33 +1001,58 @@ btn.MouseButton1Click:Connect(function()
         task.wait(3) -- Jeda buat nunggu mobil muncul
         
         -- ==========================================
-        -- LANGKAH 4: NAIK KE MOBIL
+                -- ==========================================
+        -- LANGKAH 4: NAIK KE MOBIL & KUNCI SEBELUM LOOP
         -- ==========================================
+        task.wait(3) -- Tunggu mobil bener-bener muncul
         btn.Text = "NAIK KE MOBIL..."
+        
+        local seated = false
         if hum then
             local vehicles = workspace:FindFirstChild("Vehicles")
             local myCar = vehicles and vehicles:FindFirstChild(LP.Name .. "sCar") 
             local driveSeat = myCar and myCar:FindFirstChild("DriveSeat")
             
             if driveSeat then
+                -- Paksa duduk
                 pcall(function()
                     driveSeat:Sit(hum) 
-                    print("✅ Berhasil duduk di:", driveSeat:GetFullName())
                 end)
                 
+                -- Fire prompt kursi (jaga-jaga)
                 local prompt = driveSeat:FindFirstChild("PromptDriveSeat")
                 if prompt then
                     pcall(function() fireproximityprompt(prompt) end)
+                end
+                
+                -- 🔥 TUNGGU SAMPAI BENER-BENER DUDUK (MAKSIMAL 60 DETIK) 🔥
+                local timeout = 0
+                while not seated and timeout < 60 do
+                    task.wait(0.5)
+                    timeout += 0.5
+                    if hum.SeatPart then
+                        seated = true
+                        print("✅ Player terverifikasi duduk di:", hum.SeatPart:GetFullName())
+                    end
                 end
             else
                 print("❌ Mobil gak ketemu di workspace.Vehicles!") 
             end
         end
-        task.wait(2) -- Jeda biar sistem nyatet lo udah duduk
+        
+        -- 🔥 KUNCI UTAMA: JANGAN JALANIN LOOP KALAU BELUM DUDUK
+        if not seated then
+            notify("❌ Gagal duduk di mobil setelah 1 menit! Auto-Farm dibatalkan.")
+            isAutoFarming = false
+            btn.Text = "MULAI AUTO FARMING"
+            btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+            return
+        end
         
         -- ==========================================
-        -- LANGKAH 5: JALANIN AUTO FARM LOOP
+        -- LANGKAH 5: JALANIN AUTO FARM (SETELAH DUDUK)
         -- ==========================================
+        task.wait(1.5) -- Jeda bentar biar sistem stabil
         btn.Text = "STOP AUTO FARMING"
         notify("🚀 Auto-Farming Dimulai!")
         task.spawn(autoFarmLoop)
