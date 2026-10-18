@@ -39,15 +39,16 @@ local WHITE = Color3.fromRGB(255, 255, 255)
 local rng = Random.new(7)
 local afkConn -- diisi di bagian Anti-AFK paling bawah
 
-local gui = make("ScreenGui", {Name = "SxAutoPilotGui", ResetOnSpawn = false}, CoreGui)
+local gui = make("ScreenGui", {Name = "SxAutoPilotGui", ResetOnSpawn = false, IgnoreGuiInset = true}, CoreGui)
 
 local mainFrame = make("Frame", {
     Size = UDim2.new(0, 300, 0, 360),
-    Position = UDim2.new(0.5, -150, 0.2, 0),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.new(0.5, 0, 0.2, 180),
     BackgroundColor3 = Color3.fromRGB(12, 12, 20),
     BorderSizePixel = 0, Active = true, Draggable = true,
 }, gui)
-make("UICorner", {CornerRadius = UDim.new(0, 12)}, mainFrame)
+local mainCorner = make("UICorner", {CornerRadius = UDim.new(0, 12)}, mainFrame)
 
 local stroke = make("UIStroke", {Thickness = 2, Color = WHITE}, mainFrame)
 local strokeGrad = make("UIGradient", {
@@ -62,12 +63,12 @@ local strokeGrad = make("UIGradient", {
 local popScale = make("UIScale", {Scale = 0}, mainFrame)
 TweenService:Create(popScale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1}):Play()
 
--- ===== BANNER ENVIRONMENT =====
+-- ===== BANNER ENVIRONMENT (ukurannya fleksibel: kecil di menu, full pas farming) =====
 local banner = make("Frame", {
     Size = UDim2.new(1, -12, 0, 92), Position = UDim2.new(0, 6, 0, 6),
     BackgroundColor3 = WHITE, BorderSizePixel = 0, ClipsDescendants = true,
 }, mainFrame)
-make("UICorner", {CornerRadius = UDim.new(0, 8)}, banner)
+local bannerCorner = make("UICorner", {CornerRadius = UDim.new(0, 8)}, banner)
 local skyGrad = make("UIGradient", {
     Color = ColorSequence.new(Color3.fromRGB(45, 10, 90), Color3.fromRGB(10, 20, 60)),
     Rotation = 90,
@@ -77,7 +78,7 @@ local stars = {}
 for i = 1, 18 do
     local s = make("Frame", {
         Size = UDim2.new(0, 2, 0, 2),
-        Position = UDim2.new(rng:NextNumber(), 0, 0, rng:NextInteger(4, 50)),
+        Position = UDim2.new(rng:NextNumber(), 0, rng:NextNumber(0.04, 0.54), 0),
         BackgroundColor3 = WHITE, BorderSizePixel = 0,
     }, banner)
     table.insert(stars, {f = s, p = rng:NextNumber(0, 6)})
@@ -85,13 +86,14 @@ end
 
 local clouds = {}
 for i = 1, 3 do
+    local cw, ch = rng:NextInteger(26, 40), rng:NextInteger(7, 10)
     local c = make("Frame", {
-        Size = UDim2.new(0, rng:NextInteger(26, 40), 0, rng:NextInteger(7, 10)),
-        Position = UDim2.new(0, 0, 0, rng:NextInteger(8, 40)),
+        Size = UDim2.new(0, cw, 0, ch),
+        Position = UDim2.new(0, 0, rng:NextNumber(0.09, 0.43), 0),
         BackgroundColor3 = WHITE, BorderSizePixel = 0,
     }, banner)
     make("UICorner", {CornerRadius = UDim.new(1, 0)}, c)
-    table.insert(clouds, {f = c, off = rng:NextNumber(0, 340), spd = rng:NextNumber(6, 14)})
+    table.insert(clouds, {f = c, w = cw, h = ch, y = c.Position.Y.Scale, off = rng:NextNumber(0, 340), spd = rng:NextNumber(6, 14)})
 end
 
 local sun = make("Frame", {
@@ -106,61 +108,73 @@ local moon = make("Frame", {
 }, banner)
 make("UICorner", {CornerRadius = UDim.new(1, 0)}, moon)
 
+-- gedung (pakai skala, jadi ikut melebar pas full screen)
 local buildings = {}
 local windows = {}
-local bx = 0
-for i = 1, 11 do
-    local w, h = rng:NextInteger(20, 32), rng:NextInteger(14, 30)
+local bxf = 0
+while bxf < 1 do
+    local wf = rng:NextNumber(0.06, 0.085)
+    local hf = rng:NextNumber(0.15, 0.34)
     local b = make("Frame", {
-        Size = UDim2.new(0, w, 0, h), Position = UDim2.new(0, bx, 0, 72 - h),
+        Size = UDim2.fromScale(wf, hf), Position = UDim2.fromScale(bxf, 0.7826 - hf),
         BackgroundColor3 = Color3.fromRGB(18, 14, 35), BorderSizePixel = 0,
     }, banner)
     table.insert(buildings, b)
-    for wx = 4, w - 6, 8 do
-        for wy = 4, h - 6, 8 do
+    local cols, rowsN = 2, rng:NextInteger(3, 5)
+    for c = 1, cols do
+        for r = 1, rowsN do
             if rng:NextNumber() > 0.5 then
                 local win = make("Frame", {
-                    Size = UDim2.new(0, 2, 0, 2), Position = UDim2.new(0, wx, 0, wy),
+                    Size = UDim2.fromOffset(2, 2), AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.fromScale(c / (cols + 1), r / (rowsN + 1)),
                     BackgroundColor3 = Color3.fromRGB(255, 210, 90), BorderSizePixel = 0,
                 }, b)
                 table.insert(windows, win)
             end
         end
     end
-    bx += w + 2
+    bxf += wf + 0.007
 end
 
 local road = make("Frame", {
-    Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 0, 0, 72),
+    Size = UDim2.fromScale(1, 0.2174), Position = UDim2.fromScale(0, 0.7826),
     BackgroundColor3 = Color3.fromRGB(28, 28, 36), BorderSizePixel = 0,
 }, banner)
 local dashes = {}
-for i = 0, 7 do
-    dashes[i + 1] = make("Frame", {
-        Size = UDim2.new(0, 18, 0, 2), Position = UDim2.new(0, i * 40, 0, 10),
+for i = 1, 8 do
+    dashes[i] = make("Frame", {
+        Size = UDim2.new(0, 18, 0, 2), AnchorPoint = Vector2.new(0, 0.5),
+        Position = UDim2.new(0, (i - 1) * 40, 0.5, 0),
         BackgroundColor3 = Color3.fromRGB(255, 215, 0), BorderSizePixel = 0,
     }, road)
 end
 
 local truckIcon = make("TextLabel", {
-    Size = UDim2.new(0, 28, 0, 24), Position = UDim2.new(0.5, -14, 0, 56),
+    Size = UDim2.new(0, 28, 0, 24), AnchorPoint = Vector2.new(0.5, 0),
+    Position = UDim2.new(0.5, 0, 0.6087, 0),
     BackgroundTransparency = 1, Text = "🚚", TextSize = 20, Font = Enum.Font.SourceSans,
 }, banner)
 
-make("TextLabel", {
+local titleLbl = make("TextLabel", {
     Size = UDim2.new(1, -44, 0, 22), Position = UDim2.new(0, 10, 0, 6),
     BackgroundTransparency = 1, Text = "AUTO-FARMING V20", TextColor3 = WHITE,
     Font = Enum.Font.GothamBold, TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 3,
     TextStrokeTransparency = 0.5, TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
 }, banner)
 
-make("TextLabel", {
+local helloLbl = make("TextLabel", {
     Size = UDim2.new(1, -44, 0, 16), Position = UDim2.new(0, 10, 0, 26),
     BackgroundTransparency = 1, Text = "Halo, " .. LP.Name .. "!",
     TextColor3 = Color3.fromRGB(235, 220, 255), Font = Enum.Font.GothamMedium,
     TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 3,
     TextStrokeTransparency = 0.5, TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
 }, banner)
+
+-- ===== PANEL KONTROL (kartu + tombol, pindah ke tengah pas full screen) =====
+local panel = make("Frame", {
+    Size = UDim2.new(0, 300, 0, 360), BackgroundTransparency = 1, BorderSizePixel = 0,
+}, mainFrame)
+local panelScale = make("UIScale", {Scale = 1}, panel)
 
 -- ===== TOMBOL X =====
 local closeBtn = make("TextButton", {
@@ -174,7 +188,7 @@ make("UICorner", {CornerRadius = UDim.new(0, 6)}, closeBtn)
 local card = make("Frame", {
     Size = UDim2.new(1, -20, 0, 118), Position = UDim2.new(0, 10, 0, 106),
     BackgroundColor3 = Color3.fromRGB(22, 22, 34), BorderSizePixel = 0,
-}, mainFrame)
+}, panel)
 make("UICorner", {CornerRadius = UDim.new(0, 8)}, card)
 make("UIStroke", {Color = Color3.fromRGB(50, 50, 80), Thickness = 1}, card)
 
@@ -197,21 +211,21 @@ make("TextLabel", {
     Size = UDim2.new(1, -20, 0, 18), Position = UDim2.new(0, 10, 0, 232),
     BackgroundTransparency = 1, Text = "Atur Ketinggian (Studs):", TextColor3 = Color3.fromRGB(180, 180, 200),
     Font = Enum.Font.GothamMedium, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left,
-}, mainFrame)
+}, panel)
 
 local heightBox = make("TextBox", {
     Size = UDim2.new(0.5, -15, 0, 32), Position = UDim2.new(0, 10, 0, 254),
     BackgroundColor3 = Color3.fromRGB(30, 30, 46), TextColor3 = WHITE,
     Text = tostring(heightValue), PlaceholderText = "Angka...",
     Font = Enum.Font.GothamBold, TextSize = 14, ClearTextOnFocus = false,
-}, mainFrame)
+}, panel)
 make("UICorner", {CornerRadius = UDim.new(0, 6)}, heightBox)
 
 local dirBtn = make("TextButton", {
     Size = UDim2.new(0.5, -15, 0, 32), Position = UDim2.new(0.5, 5, 0, 254),
     BackgroundColor3 = Color3.fromRGB(50, 150, 50), Text = "KE ATAS", TextColor3 = WHITE,
     Font = Enum.Font.GothamBold, TextSize = 14, AutoButtonColor = false,
-}, mainFrame)
+}, panel)
 make("UICorner", {CornerRadius = UDim.new(0, 6)}, dirBtn)
 
 -- ===== START/STOP =====
@@ -219,7 +233,7 @@ local btn = make("TextButton", {
     Size = UDim2.new(1, -20, 0, 44), Position = UDim2.new(0, 10, 0, 300),
     BackgroundColor3 = Color3.fromRGB(170, 0, 255), Text = "MULAI AUTO FARMING",
     TextColor3 = WHITE, Font = Enum.Font.GothamBold, TextSize = 15, AutoButtonColor = false,
-}, mainFrame)
+}, panel)
 make("UICorner", {CornerRadius = UDim.new(0, 8)}, btn)
 
 -- ===== EFEK PRESS =====
@@ -236,8 +250,100 @@ local function addPress(button)
 end
 addPress(btn); addPress(dirBtn); addPress(closeBtn)
 
+-- ===== TRANSISI GUI KECIL <-> FULL SCREEN =====
+-- Otomatis: begitu isAutoFarming jadi true -> melebar full screen,
+-- begitu jadi false (stop / gagal) -> balik ke GUI kecil.
+local fullV = Instance.new("NumberValue") -- 0 = kecil, 1 = full (buat atur kepadatan hujan/salju)
+local isFull = false
+local animating = false
+local closing = false
+local smallPos = mainFrame.Position
+local activeTweens = {}
+
+mainFrame:GetPropertyChangedSignal("Position"):Connect(function()
+    if not isFull and not animating then smallPos = mainFrame.Position end
+end)
+
+local function tw(obj, info, props)
+    local t = TweenService:Create(obj, info, props)
+    t:Play()
+    table.insert(activeTweens, t)
+    return t
+end
+
+local function cancelTweens()
+    for _, t in ipairs(activeTweens) do t:Cancel() end
+    activeTweens = {}
+end
+
+local function setFull(on)
+    isFull = on
+    cancelTweens()
+    mainFrame.Draggable = false
+    animating = true
+
+    local info = TweenInfo.new(on and 0.9 or 0.7, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut)
+    local soft = TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local main
+
+    if on then
+        main = tw(mainFrame, info, {Size = UDim2.fromScale(1, 1), Position = UDim2.fromScale(0.5, 0.5)})
+        tw(mainCorner, info, {CornerRadius = UDim.new(0, 0)})
+        tw(stroke, info, {Transparency = 1})
+        tw(banner, info, {Position = UDim2.new(0, 0, 0, 0), Size = UDim2.new(1, 0, 1, 0)})
+        tw(bannerCorner, info, {CornerRadius = UDim.new(0, 0)})
+        tw(panel, info, {AnchorPoint = Vector2.new(0.5, 0.625), Position = UDim2.fromScale(0.5, 0.5)})
+        tw(fullV, info, {Value = 1})
+        tw(card, soft, {BackgroundTransparency = 0.25})
+        local fit = math.clamp(gui.AbsoluteSize.Y / 380, 0.9, 1.4)
+        tw(panelScale, TweenInfo.new(0.7, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, false, 0.35), {Scale = fit})
+    else
+        main = tw(mainFrame, info, {Size = UDim2.new(0, 300, 0, 360), Position = smallPos})
+        tw(mainCorner, info, {CornerRadius = UDim.new(0, 12)})
+        tw(stroke, info, {Transparency = 0})
+        tw(banner, info, {Position = UDim2.new(0, 6, 0, 6), Size = UDim2.new(1, -12, 0, 92)})
+        tw(bannerCorner, info, {CornerRadius = UDim.new(0, 8)})
+        tw(panel, info, {AnchorPoint = Vector2.new(0, 0), Position = UDim2.new(0, 0, 0, 0)})
+        tw(fullV, info, {Value = 0})
+        tw(card, soft, {BackgroundTransparency = 0})
+        tw(panelScale, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Scale = 1})
+    end
+
+    -- efek "mantul" kecil di window
+    tw(popScale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1})
+
+    main.Completed:Connect(function(state)
+        if state == Enum.PlaybackState.Completed then
+            animating = false
+            if not on then
+                mainFrame.Draggable = true
+                smallPos = mainFrame.Position
+            end
+        end
+    end)
+end
+
+-- pantau status farming (tanpa nyentuh logic start/stop)
+task.spawn(function()
+    while gui.Parent do
+        if not closing and isAutoFarming ~= isFull then
+            if isAutoFarming then
+                -- anticipation: window mengkerut dikit sebelum melebar
+                TweenService:Create(popScale, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 0.94}):Play()
+                task.wait(0.1)
+                if isAutoFarming and not closing then setFull(true) end
+            else
+                setFull(false)
+            end
+        end
+        task.wait(0.1)
+    end
+end)
+
 -- ===== LOGIC TOMBOL X (destroy script) =====
 closeBtn.MouseButton1Click:Connect(function()
+    closing = true
+    cancelTweens()
     isAutoFarming = false
     if afkConn then afkConn:Disconnect() end
     local t = TweenService:Create(popScale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Scale = 0})
@@ -264,12 +370,7 @@ local MALAM = {
 
 local KEYS = {SORE, SIANG, SORE, MALAM}
 local CYCLE = 40
-local CENTER_X, HORIZON = 144, 68
-local ARC_X, ARC_Y = 150, 58
 
-local function orbPos(a)
-    return UDim2.fromOffset(CENTER_X - ARC_X * math.cos(a), HORIZON - ARC_Y * math.sin(a))
-end
 local function lerpN(a, b, k) return a + (b - a) * k end
 local function smooth(k) return k * k * (3 - 2 * k) end
 local function desat(c, amt)
@@ -301,14 +402,15 @@ local function weatherAt(t)
     return 0, 0
 end
 
-local DROPS, FLAKES = 28, 22
+-- partikel (pool tetap; di mode kecil cuma sebagian yang kelihatan, full screen semuanya)
+local DROPS, FLAKES = 45, 36
 local drops, flakes = {}, {}
 for i = 1, DROPS do
     local f = make("Frame", {
         Size = UDim2.new(0, 1, 0, 7), Rotation = -12, BorderSizePixel = 0,
         BackgroundColor3 = Color3.fromRGB(170, 205, 255), BackgroundTransparency = 1,
     }, banner)
-    table.insert(drops, {f = f, x = rng:NextNumber(0, 300), off = rng:NextNumber(0, 100),
+    table.insert(drops, {f = f, xf = rng:NextNumber(), off = rng:NextNumber(0, 100),
         spd = rng:NextNumber(150, 220), thr = i / DROPS})
 end
 for i = 1, FLAKES do
@@ -317,26 +419,77 @@ for i = 1, FLAKES do
         BackgroundColor3 = WHITE_C, BackgroundTransparency = 1,
     }, banner)
     make("UICorner", {CornerRadius = UDim.new(1, 0)}, f)
-    table.insert(flakes, {f = f, x = rng:NextNumber(0, 288), off = rng:NextNumber(0, 100),
+    table.insert(flakes, {f = f, xf = rng:NextNumber(), off = rng:NextNumber(0, 100),
         spd = rng:NextNumber(12, 26), p = rng:NextNumber(0, 6), thr = i / FLAKES})
+end
+
+-- skala ukuran elemen sesuai tinggi banner (S = 1 di mode kecil)
+local lastS = -1
+local function applyScale(S)
+    if lastS > 0 and math.abs(S - lastS) < 0.02 then return end
+    lastS = S
+    local s2 = math.clamp(S ^ 0.6, 1, 2.2)
+    local px = math.max(2, math.floor(2 * S + 0.5))
+
+    for _, s in ipairs(stars) do s.f.Size = UDim2.fromOffset(px, px) end
+    for _, w in ipairs(windows) do w.Size = UDim2.fromOffset(px, px) end
+    for _, c in ipairs(clouds) do c.f.Size = UDim2.fromOffset(c.w * S, c.h * S) end
+    sun.Size = UDim2.fromOffset(18 * S, 18 * S)
+    moon.Size = UDim2.fromOffset(16 * S, 16 * S)
+    for _, d in ipairs(dashes) do d.Size = UDim2.fromOffset(18 * S, math.max(2, 2 * S)) end
+    for _, d in ipairs(drops) do
+        d.f.Size = UDim2.fromOffset(math.max(1, math.floor(S * 0.5 + 0.5)), 7 * S)
+    end
+    for _, f in ipairs(flakes) do
+        local sz = math.max(3, math.floor(3 * S + 0.5))
+        f.f.Size = UDim2.fromOffset(sz, sz)
+    end
+    truckIcon.Size = UDim2.fromOffset(28 * S, 24 * S)
+    truckIcon.TextSize = math.min(100, math.floor(20 * S))
+
+    titleLbl.Size = UDim2.new(1, -44 * s2, 0, 22 * s2)
+    titleLbl.Position = UDim2.new(0, 10 * s2, 0, 6 * s2)
+    titleLbl.TextSize = math.floor(15 * s2)
+    helloLbl.Size = UDim2.new(1, -44 * s2, 0, 16 * s2)
+    helloLbl.Position = UDim2.new(0, 10 * s2, 0, 26 * s2)
+    helloLbl.TextSize = math.floor(12 * s2)
+    closeBtn.Size = UDim2.fromOffset(24 * s2, 24 * s2)
+    closeBtn.Position = UDim2.new(1, -34 * s2, 0, 15 * s2)
+    closeBtn.TextSize = math.floor(13 * s2)
 end
 
 local t0 = os.clock()
 local animConn
 animConn = RunService.RenderStepped:Connect(function()
     if not gui.Parent then animConn:Disconnect() return end
+
+    -- ukuran banner di ruang lokal (dibagi UIScale pop-in biar akurat)
+    local ps = popScale.Scale
+    if ps < 0.05 then return end
+    local W, H = banner.AbsoluteSize.X / ps, banner.AbsoluteSize.Y / ps
+    if H < 10 then return end
+    local S = H / 92
+    applyScale(S)
+
     local t = os.clock() - t0
     local u = (t % CYCLE) / CYCLE
     local theta = u * 2 * math.pi
     local rainI, snowI = weatherAt(t)
     local ov = math.max(rainI, snowI)
 
-    sun.Position = orbPos(theta)
-    moon.Position = orbPos(theta + math.pi)
+    -- kepadatan partikel: sebagian di mode kecil, penuh di full screen
+    local dens = 0.45 + 0.55 * fullV.Value
+    local rainE, snowE = rainI * dens, snowI * dens
+
+    -- matahari & bulan (orbit ikut ukuran banner)
+    local cx, hz, ax, ay = W / 2, H * 0.739, W * 0.52, H * 0.63
+    sun.Position = UDim2.fromOffset(cx - ax * math.cos(theta), hz - ay * math.sin(theta))
+    moon.Position = UDim2.fromOffset(cx - ax * math.cos(theta + math.pi), hz - ay * math.sin(theta + math.pi))
     sun.BackgroundColor3 = ORANGE:Lerp(YELLOW, math.clamp(math.sin(theta) * 2.5, 0, 1))
     sun.BackgroundTransparency = ov * 0.7
     moon.BackgroundTransparency = ov * 0.7
 
+    -- tema siang/sore/malam
     local seg = math.floor(u * 4)
     local k = smooth(u * 4 - seg)
     local A = KEYS[seg + 1]
@@ -361,35 +514,41 @@ animConn = RunService.RenderStepped:Connect(function()
 
     local starVis = lerpN(A.star, B.star, k) * (1 - ov * 0.85)
     for _, s in ipairs(stars) do
-        local tw = 0.5 + 0.45 * math.sin(t * 3 + s.p)
-        s.f.BackgroundTransparency = 1 - (1 - tw) * starVis
+        local tw2 = 0.5 + 0.45 * math.sin(t * 3 + s.p)
+        s.f.BackgroundTransparency = 1 - (1 - tw2) * starVis
     end
 
     local cloudTrans = lerpN(1 - lerpN(A.cloud, B.cloud, k), 0.1, ov)
     local cloudCol = desat(A.cloudCol:Lerp(B.cloudCol, k), ov * 0.7):Lerp(Color3.new(0, 0, 0), rainI * 0.35)
+    local period = W * 1.25
     for _, c in ipairs(clouds) do
         c.f.BackgroundColor3 = cloudCol
         c.f.BackgroundTransparency = cloudTrans
-        c.f.Position = UDim2.new(0, ((c.off + t * c.spd) % 360) - 50, 0, c.f.Position.Y.Offset)
+        local x = ((c.off / 340) * period + t * c.spd * S) % period - W * 0.17
+        c.f.Position = UDim2.new(0, x, c.y, 0)
     end
 
+    -- hujan (miring searah jalan)
     for _, d in ipairs(drops) do
-        local y = (t * d.spd + d.off) % 105 - 8
-        d.f.Position = UDim2.fromOffset((d.x + y * 0.21) % 300, y)
-        d.f.BackgroundTransparency = 1 - 0.65 * math.clamp((rainI - d.thr * 0.9) * 5, 0, 1)
+        local yf = (t * d.spd / 92 + d.off / 100) % 1.14 - 0.09
+        local y = yf * H
+        d.f.Position = UDim2.fromOffset((d.xf * W + y * 0.21) % (W * 1.04), y)
+        d.f.BackgroundTransparency = 1 - 0.65 * math.clamp((rainE - d.thr * 0.9) * 5, 0, 1)
     end
 
+    -- salju
     for _, f in ipairs(flakes) do
-        local y = (t * f.spd + f.off) % 100 - 6
-        f.f.Position = UDim2.fromOffset(f.x + math.sin(t * 1.4 + f.p) * 7, y)
-        f.f.BackgroundTransparency = 1 - 0.9 * math.clamp((snowI - f.thr * 0.9) * 5, 0, 1)
+        local yf = (t * f.spd / 100 + f.off / 100) % 1.06 - 0.06
+        f.f.Position = UDim2.fromOffset(f.xf * W + math.sin(t * 1.4 + f.p) * 7 * S, yf * H)
+        f.f.BackgroundTransparency = 1 - 0.9 * math.clamp((snowE - f.thr * 0.9) * 5, 0, 1)
     end
 
+    -- elemen lain
     strokeGrad.Rotation = (t * 60) % 360
     for i, d in ipairs(dashes) do
-        d.Position = UDim2.new(0, ((i - 1) * 40 + t * 70) % 320 - 30, 0, 10)
+        d.Position = UDim2.new(0, ((i - 1) * 40 * S + t * 70 * S) % (320 * S) - 30 * S, 0.5, 0)
     end
-    truckIcon.Position = UDim2.new(0.5, -14, 0, 56 + math.sin(t * 12))
+    truckIcon.Position = UDim2.new(0.5, 0, 0.6087, math.sin(t * 12) * S)
 end)
 
 -- ========================================================
@@ -851,8 +1010,6 @@ end
 task.wait(2)
 if not isAutoFarming then return end
 
-
-        
 -- FASE 3: MENUJU SPAWNER PART DAN FIRE PROMPT
 btn.Text = "MENUJU SPAWNER..."
 
@@ -961,6 +1118,25 @@ end)
 
 if not isAutoFarming then return end
 
+-- ⏳ TUNGGU MOBIL SPAWN (maks 20 detik) sebelum naik, biar nggak keburu kebaca "gak ada vehicle"
+btn.Text = "MENUNGGU MOBIL SPAWN..."
+local carReady = false
+local waitCar = 0
+while waitCar < 20 do
+    local vFolder = workspace:FindFirstChild("Vehicles")
+    local car = vFolder and vFolder:FindFirstChild(LP.Name .. "sCar")
+    if car and car:FindFirstChild("DriveSeat") then
+        carReady = true
+        print("✅ Mobil player udah spawn!")
+        break
+    end
+    task.wait(0.5)
+    waitCar += 0.5
+    if not isAutoFarming then return end
+end
+if carReady then task.wait(1.5) end -- kasih napas biar mobilnya settle dulu
+if not isAutoFarming then return end
+
 -- FASE 4: NAIK KE MOBIL (WAJIB DUDUK)
 
 
@@ -1015,3 +1191,4 @@ afkConn = LP.Idled:Connect(function()
         VirtualUser:ClickButton2(Vector2.new())
     end)
 end)
+        
