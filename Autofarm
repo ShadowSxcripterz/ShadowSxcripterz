@@ -1,25 +1,6 @@
--- bridge.luau
--- Cek dulu, Arceus X gak punya Drawing kan?
-if not Drawing then
-    warn("[Bridge] Drawing gak ada, coba load library...")
-    
-    local ok, lib = pcall(function()
-        return loadstring(game:HttpGet("https://raw.githubusercontent.com/Bubbajohn1/vamp.drawing/main/main.lua"))()
-    end)
-    
-    if ok and lib then
-        Drawing = lib
-        print("[Bridge] Drawing berhasil di-inject!")
-    else
-        warn("[Bridge] Gagal load Drawing, ESP bakal skip.")
-    end
-else
-    print("[Bridge] Drawing udah ada, gak perlu di-inject.")
-end
-
 -- ========================================================
--- AUTO-PILOT TRUCK V18.4 (ULTIMATE BCA EDITION)
--- Update: Aspal arah benar + Scan struk selama jeda 5s + Siang/Sore/Malam
+-- AUTO-FARMING TRUCK V20 (FINAL CLEAN - NO CONFLICT)
+-- Fase: Job -> Starter -> Spawner -> Duduk (max 60s) -> Loop
 -- ========================================================
 
 local TweenService = game:GetService("TweenService")
@@ -32,21 +13,18 @@ local RunService = game:GetService("RunService")
 local VirtualUser = game:GetService("VirtualUser")
 local LP = Players.LocalPlayer
 
-local SAFE_TIME = 56.5 
+local SAFE_TIME = 56.5
+local PAUSE_TIME = 5
 local isTeleporting = false
 local isAutoFarming = false
-
--- Variabel Ketinggian (Aman dari reset)
 local heightValue = 15
-local isUp = true 
-
--- Variabel Timer
+local isUp = true
 local totalUptime = 0
 local countdownTime = SAFE_TIME
 
--- ==========================================
--- 1. BIKIN GUI (PRO DASHBOARD)
--- ==========================================
+-- ========================================================
+-- 1. GUI SETUP
+-- ========================================================
 local oldGui = CoreGui:FindFirstChild("SxAutoPilotGui")
 if oldGui then oldGui:Destroy() end
 
@@ -57,411 +35,52 @@ local function make(class, props, parent)
     return o
 end
 
-local WHITE = Color3.fromRGB(255, 255, 255)
-local rng = Random.new(7)
-
 local gui = make("ScreenGui", {Name = "SxAutoPilotGui", ResetOnSpawn = false}, CoreGui)
-
 local mainFrame = make("Frame", {
-    Size = UDim2.new(0, 300, 0, 360),
-    Position = UDim2.new(0.5, -150, 0.2, 0),
-    BackgroundColor3 = Color3.fromRGB(12, 12, 20),
-    BorderSizePixel = 0, Active = true, Draggable = true,
+    Size = UDim2.new(0, 280, 0, 320),
+    Position = UDim2.new(0.5, -140, 0.2, 0),
+    BackgroundColor3 = Color3.fromRGB(15, 15, 25),
+    BorderSizePixel = 0,
+    Active = true,
+    Draggable = true,
 }, gui)
 make("UICorner", {CornerRadius = UDim.new(0, 12)}, mainFrame)
+make("UIStroke", {Thickness = 2, Color = Color3.fromRGB(170, 0, 255)}, mainFrame)
 
-local stroke = make("UIStroke", {Thickness = 2, Color = WHITE}, mainFrame)
-local strokeGrad = make("UIGradient", {
-    Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(170, 0, 255)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 200, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(170, 0, 255)),
-    }),
-}, stroke)
+make("TextLabel", {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 1, Text = "🚚 AUTO-FARMING V20", TextColor3 = Color3.fromRGB(170, 0, 255), Font = Enum.Font.GothamBold, TextSize = 16}, mainFrame)
+make("TextLabel", {Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 0, 0, 30), BackgroundTransparency = 1, Text = "Halo, " .. LP.Name .. "!", TextColor3 = Color3.fromRGB(255, 255, 255), Font = Enum.Font.Gotham, TextSize = 14}, mainFrame)
 
--- animasi pop-in
-local popScale = make("UIScale", {Scale = 0}, mainFrame)
-TweenService:Create(popScale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1}):Play()
+local uptimeLabel = make("TextLabel", {Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 0, 0, 50), BackgroundTransparency = 1, Text = "Waktu Farming: 00:00:00", TextColor3 = Color3.fromRGB(0, 255, 100), Font = Enum.Font.Gotham, TextSize = 14}, mainFrame)
+local countdownLabel = make("TextLabel", {Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 0, 0, 70), BackgroundTransparency = 1, Text = "Sisa Waktu: " .. SAFE_TIME .. "s", TextColor3 = Color3.fromRGB(255, 215, 0), Font = Enum.Font.Gotham, TextSize = 14}, mainFrame)
+local saldoLabel = make("TextLabel", {Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 0, 0, 95), BackgroundTransparency = 1, Text = "Saldo: -", TextColor3 = Color3.fromRGB(100, 200, 255), Font = Enum.Font.GothamBold, TextSize = 14}, mainFrame)
+local incomeLabel = make("TextLabel", {Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 0, 0, 115), BackgroundTransparency = 1, Text = "Struk Terakhir: -", TextColor3 = Color3.fromRGB(255, 100, 100), Font = Enum.Font.GothamBold, TextSize = 14}, mainFrame)
 
--- ===== BANNER ENVIRONMENT (siang / sore / malam, ganti otomatis) =====
-local banner = make("Frame", {
-    Size = UDim2.new(1, -12, 0, 92), Position = UDim2.new(0, 6, 0, 6),
-    BackgroundColor3 = WHITE, BorderSizePixel = 0, ClipsDescendants = true,
-}, mainFrame)
-make("UICorner", {CornerRadius = UDim.new(0, 8)}, banner)
-local skyGrad = make("UIGradient", {
-    Color = ColorSequence.new(Color3.fromRGB(45, 10, 90), Color3.fromRGB(10, 20, 60)),
-    Rotation = 90,
-}, banner)
+make("TextLabel", {Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 0, 0, 145), BackgroundTransparency = 1, Text = "Atur Ketinggian (Studs):", TextColor3 = Color3.fromRGB(200, 200, 200), Font = Enum.Font.Gotham, TextSize = 13}, mainFrame)
+local heightBox = make("TextBox", {Size = UDim2.new(0.4, 0, 0, 30), Position = UDim2.new(0.1, 0, 0, 170), BackgroundColor3 = Color3.fromRGB(30, 30, 45), TextColor3 = Color3.fromRGB(255, 255, 255), Text = tostring(heightValue), Font = Enum.Font.GothamBold, TextSize = 14}, mainFrame)
+make("UICorner", {CornerRadius = UDim.new(0, 4)}, heightBox)
 
-local stars = {}
-for i = 1, 18 do
-    local s = make("Frame", {
-        Size = UDim2.new(0, 2, 0, 2),
-        Position = UDim2.new(rng:NextNumber(), 0, 0, rng:NextInteger(4, 50)),
-        BackgroundColor3 = WHITE, BorderSizePixel = 0,
-    }, banner)
-    table.insert(stars, {f = s, p = rng:NextNumber(0, 6)})
-end
+local dirBtn = make("TextButton", {Size = UDim2.new(0.4, 0, 0, 30), Position = UDim2.new(0.5, 0, 0, 170), BackgroundColor3 = Color3.fromRGB(50, 150, 50), Text = "KE ATAS", TextColor3 = Color3.fromRGB(255, 255, 255), Font = Enum.Font.GothamBold, TextSize = 14}, mainFrame)
+make("UICorner", {CornerRadius = UDim.new(0, 4)}, dirBtn)
 
--- awan (kelihatan siang & sore)
-local clouds = {}
-for i = 1, 3 do
-    local c = make("Frame", {
-        Size = UDim2.new(0, rng:NextInteger(26, 40), 0, rng:NextInteger(7, 10)),
-        Position = UDim2.new(0, 0, 0, rng:NextInteger(8, 40)),
-        BackgroundColor3 = WHITE, BorderSizePixel = 0,
-    }, banner)
-    make("UICorner", {CornerRadius = UDim.new(1, 0)}, c)
-    table.insert(clouds, {f = c, off = rng:NextNumber(0, 340), spd = rng:NextNumber(6, 14)})
-end
-
--- Matahari & Bulan (orbit di belakang gedung)
-local sun = make("Frame", {
-    Size = UDim2.new(0, 18, 0, 18),
-    AnchorPoint = Vector2.new(0.5, 0.5),
-    BackgroundColor3 = Color3.fromRGB(255, 238, 110),
-    BorderSizePixel = 0,
-}, banner)
-make("UICorner", {CornerRadius = UDim.new(1, 0)}, sun)
-
-local moon = make("Frame", {
-    Size = UDim2.new(0, 16, 0, 16),
-    AnchorPoint = Vector2.new(0.5, 0.5),
-    BackgroundColor3 = Color3.fromRGB(255, 245, 200),
-    BorderSizePixel = 0,
-}, banner)
-make("UICorner", {CornerRadius = UDim.new(1, 0)}, moon)
-local buildings = {}
-local windows = {}
-local bx = 0
-for i = 1, 11 do
-    local w, h = rng:NextInteger(20, 32), rng:NextInteger(14, 30)
-    local b = make("Frame", {
-        Size = UDim2.new(0, w, 0, h), Position = UDim2.new(0, bx, 0, 72 - h),
-        BackgroundColor3 = Color3.fromRGB(18, 14, 35), BorderSizePixel = 0,
-    }, banner)
-    table.insert(buildings, b)
-    for wx = 4, w - 6, 8 do
-        for wy = 4, h - 6, 8 do
-            if rng:NextNumber() > 0.5 then
-                local win = make("Frame", {
-                    Size = UDim2.new(0, 2, 0, 2), Position = UDim2.new(0, wx, 0, wy),
-                    BackgroundColor3 = Color3.fromRGB(255, 210, 90), BorderSizePixel = 0,
-                }, b)
-                table.insert(windows, win)
-            end
-        end
-    end
-    bx += w + 2
-end
-
-local road = make("Frame", {
-    Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 0, 0, 72),
-    BackgroundColor3 = Color3.fromRGB(28, 28, 36), BorderSizePixel = 0,
-}, banner)
-local dashes = {}
-for i = 0, 7 do
-    dashes[i + 1] = make("Frame", {
-        Size = UDim2.new(0, 18, 0, 2), Position = UDim2.new(0, i * 40, 0, 10),
-        BackgroundColor3 = Color3.fromRGB(255, 215, 0), BorderSizePixel = 0,
-    }, road)
-end
-
-local truckIcon = make("TextLabel", {
-    Size = UDim2.new(0, 28, 0, 24), Position = UDim2.new(0.5, -14, 0, 56),
-    BackgroundTransparency = 1, Text = "🚚", TextSize = 20, Font = Enum.Font.SourceSans,
-}, banner)
-
-make("TextLabel", {
-    Size = UDim2.new(1, -44, 0, 22), Position = UDim2.new(0, 10, 0, 6),
-    BackgroundTransparency = 1, Text = "AUTO-FARMING V18.4", TextColor3 = WHITE,
-    Font = Enum.Font.GothamBold, TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 3,
-    TextStrokeTransparency = 0.5, TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
-}, banner)
-
-make("TextLabel", {
-    Size = UDim2.new(1, -44, 0, 16), Position = UDim2.new(0, 10, 0, 26),
-    BackgroundTransparency = 1, Text = "Halo, " .. LP.Name .. "!",
-    TextColor3 = Color3.fromRGB(235, 220, 255), Font = Enum.Font.GothamMedium,
-    TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 3,
-    TextStrokeTransparency = 0.5, TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
-}, banner)
-
--- ===== TOMBOL X =====
-local closeBtn = make("TextButton", {
-    Size = UDim2.new(0, 24, 0, 24), Position = UDim2.new(1, -34, 0, 15),
-    BackgroundColor3 = Color3.fromRGB(220, 50, 60), Text = "X", TextColor3 = WHITE,
-    Font = Enum.Font.GothamBold, TextSize = 13, AutoButtonColor = false, ZIndex = 10,
-}, mainFrame)
-make("UICorner", {CornerRadius = UDim.new(0, 6)}, closeBtn)
-
--- ===== KARTU STATS =====
-local card = make("Frame", {
-    Size = UDim2.new(1, -20, 0, 118), Position = UDim2.new(0, 10, 0, 106),
-    BackgroundColor3 = Color3.fromRGB(22, 22, 34), BorderSizePixel = 0,
-}, mainFrame)
-make("UICorner", {CornerRadius = UDim.new(0, 8)}, card)
-make("UIStroke", {Color = Color3.fromRGB(50, 50, 80), Thickness = 1}, card)
-
-local function row(text, y, color)
-    return make("TextLabel", {
-        Size = UDim2.new(1, -20, 0, 24), Position = UDim2.new(0, 10, 0, y),
-        BackgroundTransparency = 1, Text = text, TextColor3 = color,
-        Font = Enum.Font.GothamMedium, TextSize = 13,
-        TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-    }, card)
-end
-
-local uptimeLabel = row("Waktu Farming: 00:00:00", 4, Color3.fromRGB(0, 255, 100))
-local countdownLabel = row("Sisa Waktu: " .. SAFE_TIME .. "s", 31, Color3.fromRGB(255, 215, 0))
-local saldoLabel = row("Saldo: Menunggu HP...", 58, Color3.fromRGB(100, 200, 255))
-local incomeLabel = row("Struk Terakhir: -", 85, Color3.fromRGB(255, 100, 100))
-
--- ===== KETINGGIAN =====
-make("TextLabel", {
-    Size = UDim2.new(1, -20, 0, 18), Position = UDim2.new(0, 10, 0, 232),
-    BackgroundTransparency = 1, Text = "Atur Ketinggian (Studs):", TextColor3 = Color3.fromRGB(180, 180, 200),
-    Font = Enum.Font.GothamMedium, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left,
-}, mainFrame)
-
-local heightBox = make("TextBox", {
-    Size = UDim2.new(0.5, -15, 0, 32), Position = UDim2.new(0, 10, 0, 254),
-    BackgroundColor3 = Color3.fromRGB(30, 30, 46), TextColor3 = WHITE,
-    Text = tostring(heightValue), PlaceholderText = "Angka...",
-    Font = Enum.Font.GothamBold, TextSize = 14, ClearTextOnFocus = false,
-}, mainFrame)
-make("UICorner", {CornerRadius = UDim.new(0, 6)}, heightBox)
-
-local dirBtn = make("TextButton", {
-    Size = UDim2.new(0.5, -15, 0, 32), Position = UDim2.new(0.5, 5, 0, 254),
-    BackgroundColor3 = Color3.fromRGB(50, 150, 50), Text = "KE ATAS", TextColor3 = WHITE,
-    Font = Enum.Font.GothamBold, TextSize = 14, AutoButtonColor = false,
-}, mainFrame)
-make("UICorner", {CornerRadius = UDim.new(0, 6)}, dirBtn)
-
--- ===== START/STOP =====
-local btn = make("TextButton", {
-    Size = UDim2.new(1, -20, 0, 44), Position = UDim2.new(0, 10, 0, 300),
-    BackgroundColor3 = Color3.fromRGB(170, 0, 255), Text = "MULAI AUTO FARMING",
-    TextColor3 = WHITE, Font = Enum.Font.GothamBold, TextSize = 15, AutoButtonColor = false,
-}, mainFrame)
+local btn = make("TextButton", {Size = UDim2.new(0.8, 0, 0, 44), Position = UDim2.new(0.1, 0, 0, 230), BackgroundColor3 = Color3.fromRGB(170, 0, 255), Text = "MULAI AUTO FARMING", TextColor3 = Color3.fromRGB(255, 255, 255), Font = Enum.Font.GothamBold, TextSize = 15}, mainFrame)
 make("UICorner", {CornerRadius = UDim.new(0, 8)}, btn)
 
--- ===== EFEK PRESS (semua tombol) =====
-local function addPress(button)
-    local sc = make("UIScale", {}, button)
-    local function up()
-        TweenService:Create(sc, TweenInfo.new(0.15, Enum.EasingStyle.Back), {Scale = 1}):Play()
-    end
-    button.MouseButton1Down:Connect(function()
-        TweenService:Create(sc, TweenInfo.new(0.08), {Scale = 0.93}):Play()
-    end)
-    button.MouseButton1Up:Connect(up)
-    button.MouseLeave:Connect(up)
-end
-addPress(btn); addPress(dirBtn); addPress(closeBtn)
-
--- ==========================================
--- ANTI-AFK
--- ==========================================
-local afkConn = LP.Idled:Connect(function()
-    pcall(function()
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new())
-    end)
-end)
-
--- ===== LOGIC TOMBOL X (destroy script) =====
-closeBtn.MouseButton1Click:Connect(function()
-    isAutoFarming = false -- stop loop farming
-    if afkConn then afkConn:Disconnect() end -- matiin anti-afk
-    local t = TweenService:Create(popScale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Scale = 0})
-    t.Completed:Connect(function() gui:Destroy() end)
-    t:Play()
-end)
-
--- ===== TEMA ENVIRONMENT: ORBIT + CUACA =====
-local SIANG = {
-    top = Color3.fromRGB(60, 150, 255), bot = Color3.fromRGB(175, 228, 255),
-    bld = Color3.fromRGB(75, 90, 125), road = Color3.fromRGB(62, 64, 72),
-    star = 0, win = 0, cloud = 0.9, cloudCol = Color3.fromRGB(255, 255, 255),
-}
-local SORE = {
-    top = Color3.fromRGB(110, 55, 130), bot = Color3.fromRGB(255, 145, 70),
-    bld = Color3.fromRGB(50, 28, 60), road = Color3.fromRGB(46, 38, 50),
-    star = 0.3, win = 0.6, cloud = 0.6, cloudCol = Color3.fromRGB(255, 185, 150),
-}
-local MALAM = {
-    top = Color3.fromRGB(45, 10, 90), bot = Color3.fromRGB(10, 20, 60),
-    bld = Color3.fromRGB(18, 14, 35), road = Color3.fromRGB(28, 28, 36),
-    star = 1, win = 1, cloud = 0, cloudCol = Color3.fromRGB(120, 110, 160),
-}
-
-local KEYS = {SORE, SIANG, SORE, MALAM}
-local CYCLE = 40
-local CENTER_X, HORIZON = 144, 68
-local ARC_X, ARC_Y = 150, 58
-
-local function orbPos(a)
-    return UDim2.fromOffset(CENTER_X - ARC_X * math.cos(a), HORIZON - ARC_Y * math.sin(a))
-end
-local function lerpN(a, b, k) return a + (b - a) * k end
-local function smooth(k) return k * k * (3 - 2 * k) end
-local function desat(c, amt)
-    local l = c.R * 0.3 + c.G * 0.59 + c.B * 0.11
-    return c:Lerp(Color3.new(l, l, l), amt)
-end
-
-local ORANGE = Color3.fromRGB(255, 140, 60)
-local YELLOW = Color3.fromRGB(255, 238, 110)
-local WHITE_C = Color3.fromRGB(255, 255, 255)
-
--- ===== JADWAL CUACA (atur durasi di sini) =====
-local SCHEDULE = {
-    {"cerah", 30}, {"hujan", 25}, {"cerah", 30}, {"salju", 25},
-}
-local FADE = 6
-local W_TOTAL = 0
-for _, s in ipairs(SCHEDULE) do W_TOTAL += s[2] end
-
-local function weatherAt(t)
-    local m = t % W_TOTAL
-    for _, s in ipairs(SCHEDULE) do
-        if m < s[2] then
-            local f = smooth(math.clamp(math.min(m / FADE, (s[2] - m) / FADE), 0, 1))
-            return (s[1] == "hujan") and f or 0, (s[1] == "salju") and f or 0
-        end
-        m -= s[2]
-    end
-    return 0, 0
-end
-
--- partikel (pool tetap, di-recycle)
-local DROPS, FLAKES = 28, 22
-local drops, flakes = {}, {}
-for i = 1, DROPS do
-    local f = make("Frame", {
-        Size = UDim2.new(0, 1, 0, 7), Rotation = -12, BorderSizePixel = 0,
-        BackgroundColor3 = Color3.fromRGB(170, 205, 255), BackgroundTransparency = 1,
-    }, banner)
-    table.insert(drops, {f = f, x = rng:NextNumber(0, 300), off = rng:NextNumber(0, 100),
-        spd = rng:NextNumber(150, 220), thr = i / DROPS})
-end
-for i = 1, FLAKES do
-    local f = make("Frame", {
-        Size = UDim2.new(0, 3, 0, 3), BorderSizePixel = 0,
-        BackgroundColor3 = WHITE_C, BackgroundTransparency = 1,
-    }, banner)
-    make("UICorner", {CornerRadius = UDim.new(1, 0)}, f)
-    table.insert(flakes, {f = f, x = rng:NextNumber(0, 288), off = rng:NextNumber(0, 100),
-        spd = rng:NextNumber(12, 26), p = rng:NextNumber(0, 6), thr = i / FLAKES})
-end
-
-local t0 = os.clock()
-local animConn
-animConn = RunService.RenderStepped:Connect(function()
-    if not gui.Parent then animConn:Disconnect() return end
-    local t = os.clock() - t0
-    local u = (t % CYCLE) / CYCLE
-    local theta = u * 2 * math.pi
-    local rainI, snowI = weatherAt(t)
-    local ov = math.max(rainI, snowI) -- tingkat mendung
-
-    -- matahari & bulan (redup pas mendung)
-    sun.Position = orbPos(theta)
-    moon.Position = orbPos(theta + math.pi)
-    sun.BackgroundColor3 = ORANGE:Lerp(YELLOW, math.clamp(math.sin(theta) * 2.5, 0, 1))
-    sun.BackgroundTransparency = ov * 0.7
-    moon.BackgroundTransparency = ov * 0.7
-
-    -- tema siang/sore/malam
-    local seg = math.floor(u * 4)
-    local k = smooth(u * 4 - seg)
-    local A = KEYS[seg + 1]
-    local B = KEYS[(seg + 1) % 4 + 1]
-
-    -- langit: mendung = pudar, hujan = lebih gelap, salju = agak terang
-    local top = desat(A.top:Lerp(B.top, k), ov * 0.6)
-    local bot = desat(A.bot:Lerp(B.bot, k), ov * 0.6)
-    top = top:Lerp(Color3.new(0, 0, 0), rainI * 0.25):Lerp(WHITE_C, snowI * 0.12)
-    bot = bot:Lerp(Color3.new(0, 0, 0), rainI * 0.2):Lerp(WHITE_C, snowI * 0.15)
-    skyGrad.Color = ColorSequence.new(top, bot)
-
-    -- aspal: hujan = basah (gelap kebiruan), salju = putih
-    local roadCol = A.road:Lerp(B.road, k)
-    roadCol = roadCol:Lerp(Color3.fromRGB(20, 28, 45), rainI * 0.45):Lerp(Color3.fromRGB(215, 222, 235), snowI * 0.4)
-    road.BackgroundColor3 = roadCol
-
-    local bldCol = desat(A.bld:Lerp(B.bld, k), ov * 0.5)
-    bldCol = bldCol:Lerp(WHITE_C, snowI * 0.12)
-    for _, b in ipairs(buildings) do b.BackgroundColor3 = bldCol end
-
-    local winTrans = 1 - lerpN(A.win, B.win, k)
-    for _, w in ipairs(windows) do w.BackgroundTransparency = winTrans end
-
-    local starVis = lerpN(A.star, B.star, k) * (1 - ov * 0.85)
-    for _, s in ipairs(stars) do
-        local tw = 0.5 + 0.45 * math.sin(t * 3 + s.p)
-        s.f.BackgroundTransparency = 1 - (1 - tw) * starVis
-    end
-
-    -- awan: makin keliatan & abu-abu pas mendung
-    local cloudTrans = lerpN(1 - lerpN(A.cloud, B.cloud, k), 0.1, ov)
-    local cloudCol = desat(A.cloudCol:Lerp(B.cloudCol, k), ov * 0.7):Lerp(Color3.new(0, 0, 0), rainI * 0.35)
-    for _, c in ipairs(clouds) do
-        c.f.BackgroundColor3 = cloudCol
-        c.f.BackgroundTransparency = cloudTrans
-        c.f.Position = UDim2.new(0, ((c.off + t * c.spd) % 360) - 50, 0, c.f.Position.Y.Offset)
-    end
-
-    -- hujan
-    for _, d in ipairs(drops) do
-        local y = (t * d.spd + d.off) % 105 - 8
-        d.f.Position = UDim2.fromOffset((d.x + y * 0.21) % 300, y)
-        d.f.BackgroundTransparency = 1 - 0.65 * math.clamp((rainI - d.thr * 0.9) * 5, 0, 1)
-    end
-
-    -- salju
-    for _, f in ipairs(flakes) do
-        local y = (t * f.spd + f.off) % 100 - 6
-        f.f.Position = UDim2.fromOffset(f.x + math.sin(t * 1.4 + f.p) * 7, y)
-        f.f.BackgroundTransparency = 1 - 0.9 * math.clamp((snowI - f.thr * 0.9) * 5, 0, 1)
-    end
-
-    -- elemen lain
-    strokeGrad.Rotation = (t * 60) % 360
-    for i, d in ipairs(dashes) do
-        d.Position = UDim2.new(0, ((i - 1) * 40 + t * 70) % 320 - 30, 0, 10)
-    end
-    truckIcon.Position = UDim2.new(0.5, -14, 0, 56 + math.sin(t * 12))
-end)
-
--- ==========================================
--- 2. LOGIC TIMER, SALDO & STRUK
--- ==========================================
-
--- Baca struk terakhir (dipanggil berulang HANYA selama jeda 5 detik setelah sampai tujuan)
+-- ========================================================
+-- 2. LOGIC TIMER & BCA TRACKER
+-- ========================================================
 local function readLastIncome()
     local ok, income = pcall(function()
         local phone = LP.PlayerGui:FindFirstChild("ACTUAL NEW PHONE")
         if not phone or not phone.Enabled then return "HP Tertutup" end
-
         local transList = phone.Container.Holder.AppContainer.MyBca.AccountTransactions.AmountForm.TransList
         local transItem = transList:FindFirstChild("TransItem")
         if not transItem then return "Belum ada TransItem" end
-
         local amountObj = transItem:FindFirstChild("Amount")
         if not amountObj then return "Amount Gak Ketemu" end
-
-        if amountObj:IsA("TextLabel") then
-            return amountObj.Text
-        elseif amountObj:IsA("ValueBase") then
-            return tostring(amountObj.Value)
-        end
+        if amountObj:IsA("TextLabel") then return amountObj.Text
+        elseif amountObj:IsA("ValueBase") then return tostring(amountObj.Value) end
         return tostring(amountObj.Text or amountObj.Value or "?")
     end)
-
     if ok then
         incomeLabel.Text = "Struk Terakhir: " .. tostring(income)
         incomeLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
@@ -473,7 +92,6 @@ end
 
 task.spawn(function()
     while gui.Parent do
-        -- Update Uptime (freeze pas stop, lanjut pas start)
         if isAutoFarming then
             totalUptime += task.wait()
             local h = math.floor(totalUptime / 3600)
@@ -481,27 +99,21 @@ task.spawn(function()
             local s = math.floor(totalUptime % 60)
             uptimeLabel.Text = string.format("Waktu Farming: %02d:%02d:%02d", h, m, s)
         else
+            totalUptime = 0
+            uptimeLabel.Text = "Waktu Farming: 00:00:00"
             task.wait(1)
         end
 
-        -- Update Saldo (tetep jalan terus)
-        local success, saldo = pcall(function()
+        local ok, saldo = pcall(function()
             local phone = LP.PlayerGui:FindFirstChild("ACTUAL NEW PHONE")
             if not phone or not phone.Enabled then return "HP Tertutup" end
-
             local saldoObj = phone.Container.Holder.AppContainer.MyBca.Home.Balance.Saldo
-            local saldoText = "-"
-            if saldoObj:IsA("TextLabel") then
-                saldoText = saldoObj.Text
-            elseif saldoObj:IsA("ValueBase") then
-                saldoText = tostring(saldoObj.Value)
-            end
-            return saldoText
+            if saldoObj:IsA("TextLabel") then return saldoObj.Text
+            elseif saldoObj:IsA("ValueBase") then return tostring(saldoObj.Value) end
         end)
-
-        if success then
+        if ok then
             saldoLabel.Text = "Saldo: " .. tostring(saldo)
-            saldoLabel.TextColor3 = Color3.fromRGB(0, 255, 100) 
+            saldoLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         else
             saldoLabel.Text = "Saldo: (HP Tertutup)"
             saldoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -509,32 +121,21 @@ task.spawn(function()
     end
 end)
 
--- Logic TextBox & Tombol Atas/Bawah
 heightBox.FocusLost:Connect(function()
     local num = tonumber(heightBox.Text)
-    if num then
-        heightValue = num
-    else
-        heightBox.Text = tostring(heightValue) 
-    end
+    if num then heightValue = num else heightBox.Text = tostring(heightValue) end
 end)
-
 dirBtn.MouseButton1Click:Connect(function()
     isUp = not isUp
-    if isUp then
-        dirBtn.Text = "KE ATAS"
-        dirBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
-    else
-        dirBtn.Text = "KE BAWAH"
-        dirBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    end
+    dirBtn.Text = isUp and "KE ATAS" or "KE BAWAH"
+    dirBtn.BackgroundColor3 = isUp and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(200, 50, 50)
 end)
 
--- ==========================================
--- 3. LOGIC TELEPORT (CORE)
--- ==========================================
+-- ========================================================
+-- 3. CORE FUNCTIONS
+-- ========================================================
 local function notify(text, duration)
-    pcall(function() StarterGui:SetCore("SendNotification", {Title="Auto-Pilot", Text=text, Duration=duration or 3}) end)
+    pcall(function() StarterGui:SetCore("SendNotification", {Title = "Auto-Pilot", Text = text, Duration = duration or 3}) end)
 end
 
 local function getDestinationPos()
@@ -549,6 +150,74 @@ local function getDestinationPos()
     return nil
 end
 
+local function autoSelectJob()
+    print("🤖 Menembak Remote Event Job...")
+    pcall(function()
+        local jobRemote = ReplicatedStorage:FindFirstChild("NetworkContainer") and ReplicatedStorage.NetworkContainer:FindFirstChild("RemoteEvents") and ReplicatedStorage.NetworkContainer.RemoteEvents:FindFirstChild("Job")
+        if jobRemote then
+            jobRemote:FireServer("Truck")
+            print("✅ Berhasil menembak Remote Job ('Truck')")
+        else
+            print("❌ Remote Event 'Job' gak ketemu.")
+        end
+    end)
+end
+
+local function tweenPlayerTo(targetPos, duration)
+    local char = LP.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if not char or not hrp then return end
+
+    if hum then
+        hum.Sit = false
+        hum.Jump = true
+        task.wait(0.3)
+    end
+
+    hrp.Anchored = true
+    local startCFrame = hrp.CFrame
+    local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
+    local cframeValue = Instance.new("CFrameValue")
+    cframeValue.Value = startCFrame
+
+    local conn = cframeValue.Changed:Connect(function(v)
+        if char and char.Parent then char:PivotTo(v) end
+    end)
+
+    local tween = TweenService:Create(cframeValue, TweenInfo.new(duration, Enum.EasingStyle.Linear), {Value = targetCFrame})
+    tween:Play()
+    tween.Completed:Wait()
+
+    cframeValue:Destroy()
+    conn:Disconnect()
+    
+    -- 🔥 PENGAMAN: Paksa lepas anchor walau tween gagal
+    pcall(function()
+        hrp.AssemblyLinearVelocity = Vector3.zero
+        hrp.AssemblyAngularVelocity = Vector3.zero
+        hrp.Anchored = false
+    end)
+end
+
+local function firePrompt(prompt)
+    if not prompt or not prompt:IsA("ProximityPrompt") then return false end
+    local oldLos = prompt.RequiresLineOfSight
+    local oldDist = prompt.MaxActivationDistance
+    
+    prompt.RequiresLineOfSight = false
+    prompt.MaxActivationDistance = 100
+    local ok = pcall(function() fireproximityprompt(prompt) end)
+    
+    task.wait(1) -- 🔥 Jeda 1 detik biar prompt bener-bener ke-fire di server
+    prompt.RequiresLineOfSight = oldLos
+    prompt.MaxActivationDistance = oldDist
+    return ok
+end
+
+-- ========================================================
+-- 4. FUNGSI TELEPORT TRUCK
+-- ========================================================
 local function executeTeleport()
     if isTeleporting then return end
 
@@ -575,17 +244,12 @@ local function executeTeleport()
     if not truck or not truck.PrimaryPart then return end
 
     isTeleporting = true
-    task.wait(1) 
+    task.wait(1)
 
     local primary = truck.PrimaryPart
-
-    -- 🔥 KUNCI NILAI KETINGGIAN
     local finalOffsetY = heightValue
-    if not isUp then
-        finalOffsetY = -heightValue
-    end
+    if not isUp then finalOffsetY = -heightValue end
 
-    -- TAHAP 1: ANCHOR SEMUA PART
     local partsData = {}
     for _, v in pairs(truck:GetDescendants()) do
         if v:IsA("BasePart") then
@@ -600,24 +264,25 @@ local function executeTeleport()
     local charRoot = char:FindFirstChild("HumanoidRootPart")
     local charOffset = primary.CFrame:ToObjectSpace(charRoot.CFrame)
 
-    -- ==========================================
-    -- TAHAP 2: GERAK MANUAL (LERP)
-    -- ==========================================
     local startPivot = truck:GetPivot()
-    local targetPos = wp.Position 
+    local targetPos = wp.Position
     local elapsed = 0
     local switchedToDest = false
     local switchTime = 0
-
-    local oldDestPos = getDestinationPos() 
+    local oldDestPos = getDestinationPos()
     countdownTime = SAFE_TIME
 
     while elapsed < SAFE_TIME do
         local dt = RunService.Heartbeat:Wait()
         elapsed += dt
-
         countdownTime = SAFE_TIME - elapsed
         countdownLabel.Text = string.format("Sisa Waktu: %.1fs", math.max(0, countdownTime))
+
+        -- Kalau user pencet STOP pas mobil lagi jalan, hentikan loop
+        if not isAutoFarming then
+            isTeleporting = false
+            break
+        end
 
         if not switchedToDest then
             local destPos = getDestinationPos()
@@ -625,12 +290,10 @@ local function executeTeleport()
                 if oldDestPos and (destPos - oldDestPos).Magnitude < 5 then
                     -- Abaikan tujuan lama
                 else
-                    print(string.format("🔄 Detik ke-%.1f: Folder Destination BARU! Pindah haluan...", elapsed))
                     notify("🔄 Ketemu Checkpoint Baru! Lanjut Perjalanan...")
-                    
                     targetPos = destPos
                     startPivot = truck:GetPivot()
-                    switchTime = elapsed 
+                    switchTime = elapsed
                     switchedToDest = true
                 end
             end
@@ -652,38 +315,37 @@ local function executeTeleport()
         end
     end
 
-    -- ==========================================
-    -- TAHAP 3: PENDARATAN HALUS
-    -- ==========================================
-    local finalPivot = CFrame.new(targetPos + Vector3.new(0, finalOffsetY, 0)) * (startPivot - startPivot.Position)
-    truck:PivotTo(finalPivot)
-    if charRoot and charRoot.Parent then
-        charRoot.CFrame = finalPivot * charOffset
-    end
+    if isAutoFarming then
+        local finalPivot = CFrame.new(targetPos + Vector3.new(0, finalOffsetY, 0)) * (startPivot - startPivot.Position)
+        truck:PivotTo(finalPivot)
+        if charRoot and charRoot.Parent then
+            charRoot.CFrame = finalPivot * charOffset
+        end
 
-    for i = 1, 60 do
+        for i = 1, 60 do
+            for _, data in ipairs(partsData) do
+                if data.part and data.part.Parent then
+                    data.part.AssemblyLinearVelocity = Vector3.zero
+                    data.part.AssemblyAngularVelocity = Vector3.zero
+                end
+            end
+            RunService.Heartbeat:Wait()
+        end
+
         for _, data in ipairs(partsData) do
             if data.part and data.part.Parent then
                 data.part.AssemblyLinearVelocity = Vector3.zero
                 data.part.AssemblyAngularVelocity = Vector3.zero
+                data.part.Anchored = data.anchored
             end
+            task.wait()
         end
-        RunService.Heartbeat:Wait()
-    end
 
-    for _, data in ipairs(partsData) do
-        if data.part and data.part.Parent then
-            data.part.AssemblyLinearVelocity = Vector3.zero
-            data.part.AssemblyAngularVelocity = Vector3.zero
-            data.part.Anchored = data.anchored
-        end
-        task.wait() 
-    end
-
-    task.wait(0.3)
-    for _, data in ipairs(partsData) do
-        if data.part and data.part.Parent then
-            data.part.CanCollide = data.canCollide
+        task.wait(0.3)
+        for _, data in ipairs(partsData) do
+            if data.part and data.part.Parent then
+                data.part.CanCollide = data.canCollide
+            end
         end
     end
 
@@ -691,356 +353,120 @@ local function executeTeleport()
     isTeleporting = false
 end
 
--- ==========================================
--- 4. LOOP AUTO-FARMING & START/STOP
--- ==========================================
-local PAUSE_TIME = 5     -- lama jeda setelah sampai tujuan
-local SCAN_INTERVAL = 0.5 -- struk discan tiap 0.5 detik selama jeda
-
+-- ========================================================
+-- 5. LOOP AUTO-FARMING
+-- ========================================================
 local function autoFarmLoop()
     while isAutoFarming do
         executeTeleport()
-        
-        while isTeleporting and isAutoFarming do
-            task.wait(1)
-        end
+        while isTeleporting and isAutoFarming do task.wait(1) end
         
         if isAutoFarming then
             notify("⏳ Sampai tujuan! Menunggu 5 detik...")
-
-            -- Selama jeda 5 detik, scanner struk jalan terus
+            btn.Text = "JEDA 5s..."
             local waited = 0
             while waited < PAUSE_TIME and isAutoFarming do
                 readLastIncome()
-                btn.Text = string.format("JEDA %ds...", math.ceil(PAUSE_TIME - waited))
-                task.wait(SCAN_INTERVAL)
-                waited += SCAN_INTERVAL
+                task.wait(0.5)
+                waited += 0.5
             end
-            
-            if isAutoFarming then
-                btn.Text = "STOP AUTO FARMING"
-            end
+            if isAutoFarming then btn.Text = "STOP AUTO FARMING" end
         end
     end
 end
 
--- 🔥 Fungsi untuk memilih job via RemoteEvent
-local function autoSelectJob()
-    print("🤖 Menembak Remote Event Job...")
-    pcall(function()
-        local jobRemote = ReplicatedStorage:FindFirstChild("NetworkContainer") 
-            and ReplicatedStorage.NetworkContainer:FindFirstChild("RemoteEvents") 
-            and ReplicatedStorage.NetworkContainer.RemoteEvents:FindFirstChild("Job")
-        
-        if jobRemote then
-            jobRemote:FireServer("Truck")
-            print("✅ Berhasil menembak Remote Job ('Truck')")
-            notify("✅ Job Truck Berhasil Diambil!")
-        else
-            print("❌ Remote Event 'Job' gak ketemu di path yang dikasih.")
-        end
-    end)
-end
-
--- 🔥 FUNGSI TWEEN PLAYER (ANTI RUBBERBANDING & ANTI JATUH) 🔥
-local TweenService = game:GetService("TweenService")
-local LP = game:GetService("Players").LocalPlayer
-local Truck = workspace.Etc.Job.Truck
-
-local function getPos(obj)
-    if obj:IsA("BasePart") then return obj.Position end
-    if obj:IsA("Model") then return obj:GetPivot().Position end
-    local p = obj:FindFirstChildWhichIsA("BasePart", true)
-    return p and p.Position
-end
-
-local function waitFor(parent, name, timeout)
-    local t = 0
-    while t < timeout do
-        local o = parent:FindFirstChild(name)
-        if o then return o end
-        task.wait(0.25); t += 0.25
-    end
-end
-
-local function tweenTo(pos, dur)
-    local char = LP.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if not char or not hum then return false end
-
-    if hum.Sit then
-        hum.Sit = false
-        hum.Jump = true
-        task.wait(0.2)
-    end
-
-    local cv = Instance.new("CFrameValue")
-    cv.Value = char:GetPivot()
-    local conn = cv.Changed:Connect(function(v)
-        if char.Parent then char:PivotTo(v) end
-    end)
-    local tw = TweenService:Create(cv, TweenInfo.new(dur, Enum.EasingStyle.Linear),
-        {Value = CFrame.new(pos + Vector3.new(0, 3, 0))})
-    tw:Play()
-    tw.Completed:Wait()
-    conn:Disconnect()
-    cv:Destroy()
-    return true
-end
-
-local function firePrompt(prompt)
-    prompt.RequiresLineOfSight = false
-    prompt.MaxActivationDistance = 100
-    local ok = pcall(function() fireproximityprompt(prompt) end)
-    return ok
-end
-
--- 1. STARTER
--- 1. WAYPOINT (gantiin tween ke Starter)
-local wp = workspace:FindFirstChild("Etc")
-    and workspace.Etc:FindFirstChild("Waypoint")
-    and workspace.Etc.Waypoint:FindFirstChild("Waypoint")
-
-local wpPos = wp and getPos(wp)
-if not wpPos then print("❌ Waypoint gak ketemu") return end
-
-tweenTo(wpPos, 3)
-
-local starter = Truck:FindFirstChild("Starter")
-local sPrompt = starter and starter:FindFirstChildWhichIsA("ProximityPrompt", true)
-if sPrompt then
-    print("Starter fire:", firePrompt(sPrompt))
-else
-    print("❌ Starter prompt gak ada")
-end
-task.wait(1)
-
--- 2. SPAWNER (nunggu ke-load dulu)
-local spawner = waitFor(Truck, "Spawner", 10)
-local spPos = spawner and getPos(spawner)
-if not spPos then print("❌ Spawner belum ke-load / gak ketemu") return end
-
-pcall(function() LP:RequestStreamAroundAsync(spPos, 5) end)
-tweenTo(spPos, 3)
-
-local spPrompt
-for i = 1, 20 do
-    spPrompt = spawner:FindFirstChildWhichIsA("ProximityPrompt", true)
-    if spPrompt then break end
-    task.wait(0.5)
-end
-
-if spPrompt then
-    print("Spawner fire:", firePrompt(spPrompt))
-else
-    print("❌ Spawner prompt gak muncul")
-end
+-- ========================================================
+-- 6. TOMBOL START / STOP (FASE BERURUTAN & ANTI-TABRAKAN)
+-- ========================================================
 btn.MouseButton1Click:Connect(function()
     if isAutoFarming then
-        -- Pas di Stop
         isAutoFarming = false
         btn.Text = "MULAI AUTO FARMING"
         btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
         notify("🛑 Auto-Farming Dihentikan.")
     else
-        -- Pas di Start
         isAutoFarming = true
         totalUptime = 0
         btn.Text = "MENGAMBIL JOB..."
         btn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-        
+
         local char = LP.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        
-        -- ==========================================
-        -- LANGKAH 1: TEMBAK REMOTE JOB
-        -- ==========================================
-        autoSelectJob() 
-        task.wait(2)
-        
-        -- ==========================================
-        -- LANGKAH 2: TWEEN KE STARTER (PERSIS SCRIPT LO)
-        -- ==========================================
-        btn.Text = "MELUNCUR KE STARTER..."
-        
-        -- 1. Paksa berdiri
-        if hum then
-            hum.Sit = false
-            hum.Jump = true
-            task.wait(0.2)
-        end
 
-        -- 2. Cari Papan Starter
-        local starter = workspace:FindFirstChild("Etc") 
-            and workspace.Etc:FindFirstChild("Job") 
-            and workspace.Etc.Job:FindFirstChild("Truck") 
-            and workspace.Etc.Job.Truck:FindFirstChild("Starter")
-            
+        -- FASE 1: REMOTE JOB
+        autoSelectJob()
+        task.wait(2)
+        if not isAutoFarming then return end -- Cek tabrakan
+
+        -- FASE 2: TWEEN KE STARTER
+        btn.Text = "MELUNCUR KE STARTER..."
+        local starter = workspace:FindFirstChild("Etc") and workspace.Etc:FindFirstChild("Job") and workspace.Etc.Job:FindFirstChild("Truck") and workspace.Etc.Job.Truck:FindFirstChild("Starter")
         if starter and hrp and char then
-            -- Ambil posisi
             local targetPos = nil
-            if starter:IsA("BasePart") then 
-                targetPos = starter.Position
-            elseif starter:IsA("Model") then 
-                targetPos = starter:GetPivot().Position
+            if starter:IsA("BasePart") then targetPos = starter.Position
+            elseif starter:IsA("Model") then targetPos = starter:GetPivot().Position
             else
                 local p = starter:FindFirstChildWhichIsA("BasePart", true)
                 if p then targetPos = p.Position end
             end
-
             if targetPos then
-                -- PROSES TWEEN
-                local startCFrame = hrp.CFrame
-                local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
-                local cframeValue = Instance.new("CFrameValue")
-                cframeValue.Value = startCFrame
-
-                local conn = cframeValue.Changed:Connect(function(v)
-                    if char and char.Parent then
-                        char:PivotTo(v)
-                    end
-                end)
-
-                local tween = TweenService:Create(cframeValue, TweenInfo.new(3, Enum.EasingStyle.Linear), {Value = targetCFrame})
-                tween:Play()
-                tween.Completed:Wait()
-
-                cframeValue:Destroy()
-                conn:Disconnect()
-                print("✅ Sampai di Starter!")
-                
-                -- 🔥 FIRE PROMPT SETELAH SAMPAI
+                tweenPlayerTo(targetPos, 3)
+                if not isAutoFarming then return end
                 local starterPrompt = starter:FindFirstChild("Prompt")
-                if starterPrompt and starterPrompt:IsA("ProximityPrompt") then
-                    starterPrompt.RequiresLineOfSight = false
-                    starterPrompt.MaxActivationDistance = 100
-                    pcall(function() fireproximityprompt(starterPrompt) end)
-                    print("✅ Starter Prompt Di-fire!")
-                    task.wait(1)
-                    starterPrompt.RequiresLineOfSight = true
-                    starterPrompt.MaxActivationDistance = 10
-                end
-            else
-                print("❌ Posisi Starter gak ketemu!")
+                if starterPrompt then firePrompt(starterPrompt) end
             end
-        else
-            print("❌ Starter gak ketemu bro!")
         end
-        
-        task.wait(2) -- Jeda sebelum ke Spawner
-        
-        -- ==========================================
-        -- LANGKAH 3: TWEEN KE SPAWNER (PERSIS SCRIPT LO)
-        -- ==========================================
-        btn.Text = "MELUNCUR KE SPAWNER..."
-        
-        if hum then
-            hum.Sit = false
-            hum.Jump = true
-            task.wait(0.2)
-        end
+        task.wait(2)
+        if not isAutoFarming then return end
 
-        local spawner = workspace:FindFirstChild("Etc") 
-            and workspace.Etc:FindFirstChild("Job") 
-            and workspace.Etc.Job:FindFirstChild("Truck") 
-            and workspace.Etc.Job.Truck:FindFirstChild("Spawner")
-            and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Visual")
-            
+        -- FASE 3: TWEEN KE SPAWNER
+        btn.Text = "MELUNCUR KE SPAWNER..."
+        local spawner = workspace:FindFirstChild("Etc") and workspace.Etc:FindFirstChild("Job") and workspace.Etc.Job:FindFirstChild("Truck") and workspace.Etc.Job.Truck:FindFirstChild("Spawner") and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Visual")
         if spawner and hrp and char then
-            -- Ambil posisi
             local targetPos = nil
-            if spawner:IsA("BasePart") then 
-                targetPos = spawner.Position
-            elseif spawner:IsA("Model") then 
-                targetPos = spawner:GetPivot().Position
+            if spawner:IsA("BasePart") then targetPos = spawner.Position
+            elseif spawner:IsA("Model") then targetPos = spawner:GetPivot().Position
             else
                 local p = spawner:FindFirstChildWhichIsA("BasePart", true)
                 if p then targetPos = p.Position end
             end
-
             if targetPos then
-                -- PROSES TWEEN
-                local startCFrame = hrp.CFrame
-                local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
-                local cframeValue = Instance.new("CFrameValue")
-                cframeValue.Value = startCFrame
-
-                local conn = cframeValue.Changed:Connect(function(v)
-                    if char and char.Parent then
-                        char:PivotTo(v)
-                    end
-                end)
-
-                local tween = TweenService:Create(cframeValue, TweenInfo.new(3, Enum.EasingStyle.Linear), {Value = targetCFrame})
-                tween:Play()
-                tween.Completed:Wait()
-
-                cframeValue:Destroy()
-                conn:Disconnect()
-                print("✅ Sampai di Spawner!")
-                
-                -- 🔥 FIRE PROMPT SPAWNER
+                tweenPlayerTo(targetPos, 3)
+                if not isAutoFarming then return end
                 local spawnerPrompt = workspace.Etc.Job.Truck.Spawner.Part and workspace.Etc.Job.Truck.Spawner.Part:FindFirstChild("Prompt")
-                if spawnerPrompt and spawnerPrompt:IsA("ProximityPrompt") then
-                    spawnerPrompt.RequiresLineOfSight = false
-                    spawnerPrompt.MaxActivationDistance = 100
-                    pcall(function() fireproximityprompt(spawnerPrompt) end)
-                    print("✅ Spawner Prompt Di-fire!")
-                    task.wait(1)
-                    spawnerPrompt.RequiresLineOfSight = true
-                    spawnerPrompt.MaxActivationDistance = 10
-                end
-            else
-                print("❌ Posisi Spawner gak ketemu!")
+                if spawnerPrompt then firePrompt(spawnerPrompt) end
             end
-        else
-            print("❌ Spawner gak ketemu bro!")
         end
+        task.wait(3)
+        if not isAutoFarming then return end
 
-        task.wait(3) -- Jeda buat nunggu mobil muncul
-        
-        -- ==========================================
-                -- ==========================================
-        -- LANGKAH 4: NAIK KE MOBIL & KUNCI SEBELUM LOOP
-        -- ==========================================
-        task.wait(3) -- Tunggu mobil bener-bener muncul
+        -- FASE 4: NAIK KE MOBIL (WAJIB DUDUK)
         btn.Text = "NAIK KE MOBIL..."
-        
         local seated = false
         if hum then
             local vehicles = workspace:FindFirstChild("Vehicles")
-            local myCar = vehicles and vehicles:FindFirstChild(LP.Name .. "sCar") 
+            local myCar = vehicles and vehicles:FindFirstChild(LP.Name .. "sCar")
             local driveSeat = myCar and myCar:FindFirstChild("DriveSeat")
-            
             if driveSeat then
-                -- Paksa duduk
-                pcall(function()
-                    driveSeat:Sit(hum) 
-                end)
-                
-                -- Fire prompt kursi (jaga-jaga)
+                pcall(function() driveSeat:Sit(hum) end)
                 local prompt = driveSeat:FindFirstChild("PromptDriveSeat")
-                if prompt then
-                    pcall(function() fireproximityprompt(prompt) end)
-                end
-                
-                -- 🔥 TUNGGU SAMPAI BENER-BENER DUDUK (MAKSIMAL 60 DETIK) 🔥
+                if prompt then pcall(function() fireproximityprompt(prompt) end) end
+
                 local timeout = 0
                 while not seated and timeout < 60 do
                     task.wait(0.5)
                     timeout += 0.5
                     if hum.SeatPart then
                         seated = true
-                        print("✅ Player terverifikasi duduk di:", hum.SeatPart:GetFullName())
+                        print("✅ Player duduk di:", hum.SeatPart:GetFullName())
                     end
+                    -- 🔥 Cek kalau di tengah nunggu lo pencet Stop
+                    if not isAutoFarming then return end 
                 end
-            else
-                print("❌ Mobil gak ketemu di workspace.Vehicles!") 
             end
         end
-        
-        -- 🔥 KUNCI UTAMA: JANGAN JALANIN LOOP KALAU BELUM DUDUK
+
         if not seated then
             notify("❌ Gagal duduk di mobil setelah 1 menit! Auto-Farm dibatalkan.")
             isAutoFarming = false
@@ -1048,17 +474,21 @@ btn.MouseButton1Click:Connect(function()
             btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
             return
         end
-        
-        -- ==========================================
-        -- LANGKAH 5: JALANIN AUTO FARM (SETELAH DUDUK)
-        -- ==========================================
-        task.wait(1.5) -- Jeda bentar biar sistem stabil
+
+        task.wait(1.5)
+        if not isAutoFarming then return end
+
+        -- FASE 5: JALANKAN LOOP
         btn.Text = "STOP AUTO FARMING"
         notify("🚀 Auto-Farming Dimulai!")
         task.spawn(autoFarmLoop)
     end
 end)
-        
-            
-            
-notify("🛡️ Anti-AFK aktif")
+
+-- ANTI-AFK
+LP.Idled:Connect(function()
+    pcall(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end)
+end)
