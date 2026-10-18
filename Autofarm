@@ -399,23 +399,66 @@ btn.MouseButton1Click:Connect(function()
         task.wait(2)
         if not isAutoFarming then return end -- Cek tabrakan
 
-        -- FASE 2: TWEEN KE STARTER
+        -- FASE 2: TWEEN KE STARTER (LOGIC SIMPLE SCRIPT)
+        -- ==========================================
         btn.Text = "MELUNCUR KE STARTER..."
-        local starter = workspace:FindFirstChild("Etc") and workspace.Etc:FindFirstChild("Job") and workspace.Etc.Job:FindFirstChild("Truck") and workspace.Etc.Job.Truck:FindFirstChild("Starter")
+        
+        if hum then
+            hum.Sit = false
+            hum.Jump = true
+            task.wait(0.2)
+        end
+
+        local starter = workspace:FindFirstChild("Etc") 
+            and workspace.Etc:FindFirstChild("Job") 
+            and workspace.Etc.Job:FindFirstChild("Truck") 
+            and workspace.Etc.Job.Truck:FindFirstChild("Starter")
+            
         if starter and hrp and char then
+            -- Ambil posisi Starter
             local targetPos = nil
-            if starter:IsA("BasePart") then targetPos = starter.Position
-            elseif starter:IsA("Model") then targetPos = starter:GetPivot().Position
+            if starter:IsA("BasePart") then 
+                targetPos = starter.Position
+            elseif starter:IsA("Model") then 
+                targetPos = starter:GetPivot().Position
             else
                 local p = starter:FindFirstChildWhichIsA("BasePart", true)
                 if p then targetPos = p.Position end
             end
+
             if targetPos then
-                tweenPlayerTo(targetPos, 3)
+                print("🚀 Mulai meluncur ke Starter...")
+                local startCFrame = hrp.CFrame
+                local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
+                local cframeValue = Instance.new("CFrameValue")
+                cframeValue.Value = startCFrame
+
+                local conn = cframeValue.Changed:Connect(function(v)
+                    if char and char.Parent then
+                        char:PivotTo(v)
+                    end
+                end)
+
+                local tween = TweenService:Create(cframeValue, TweenInfo.new(3, Enum.EasingStyle.Linear), {Value = targetCFrame})
+                tween:Play()
+                tween.Completed:Wait()
+
+                cframeValue:Destroy()
+                conn:Disconnect()
+                print("✅ Sampai di Starter!")
+
+                -- Fire Prompt Starter
                 if not isAutoFarming then return end
                 local starterPrompt = starter:FindFirstChild("Prompt")
-                if starterPrompt then firePrompt(starterPrompt) end
+                if starterPrompt then 
+                    firePrompt(starterPrompt)
+                    print("✅ Starter Prompt Di-fire!")
+                end
+            else
+                print("❌ Posisi Starter gak ketemu!")
             end
+        else
+            print("❌ Starter gak ketemu bro!")
         end
         task.wait(2)
         if not isAutoFarming then return end
