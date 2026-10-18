@@ -396,9 +396,21 @@ btn.MouseButton1Click:Connect(function()
 
         -- FASE 1: REMOTE JOB
         autoSelectJob()
-        task.wait(2)
-        if not isAutoFarming then return end -- Cek tabrakan
+task.wait(2)
+if not isAutoFarming then return end
 
+-- Refresh karakter sebelum Tween
+char = LP.Character
+hum = char and char:FindFirstChildOfClass("Humanoid")
+hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+if not char or not hum or not hrp then
+    warn("Character atau HumanoidRootPart tidak ditemukan!")
+    isAutoFarming = false
+    btn.Text = "MULAI AUTO FARMING"
+    btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+    return
+end
         -- FASE 2: TWEEN KE STARTER (LOGIC SIMPLE SCRIPT)
         -- ==========================================
         btn.Text = "MELUNCUR KE STARTER..."
