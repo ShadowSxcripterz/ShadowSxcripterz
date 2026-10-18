@@ -459,34 +459,73 @@ end
 if not isAutoFarming then return end
 
 
--- CARI PROMPT STARTER YANG BENAR
-local truckJob = workspace:FindFirstChild("Etc")
+
+-- STARTER PROMPT
+local starterPrompt = workspace:FindFirstChild("Etc")
     and workspace.Etc:FindFirstChild("Job")
     and workspace.Etc.Job:FindFirstChild("Truck")
+    and workspace.Etc.Job.Truck:FindFirstChild("Starter")
+    and workspace.Etc.Job.Truck.Starter:FindFirstChild("Prompt")
 
-local starter = truckJob
-    and truckJob:FindFirstChild("Starter")
+if starterPrompt and starterPrompt:IsA("ProximityPrompt") then
+    print("🔍 Starter Prompt ketemu!")
 
-local prompt = starter
-    and starter:FindFirstChild("Prompt", true)
+    local partInduk = starterPrompt.Parent
+    local oldLOS = starterPrompt.RequiresLineOfSight
+    local oldDistance = starterPrompt.MaxActivationDistance
 
-if prompt and prompt:IsA("ProximityPrompt") then
-    local success = firePrompt(prompt)
+    pcall(function()
+        starterPrompt.RequiresLineOfSight = false
+        starterPrompt.MaxActivationDistance = 100
+    end)
 
-    if success then
-        print("✅ Starter Prompt dipanggil:", prompt:GetFullName())
-    else
-        warn("❌ Gagal memanggil Starter Prompt")
-        notify("Starter Prompt gagal!")
+    -- Pastikan karakter berdiri
+    local char = LP.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+    if hum then
+        hum.Sit = false
+        hum.Jump = true
+        task.wait(0.5)
     end
+
+    -- Dekati part induk prompt
+    if char and partInduk then
+        if partInduk:IsA("BasePart") then
+            char:MoveTo(partInduk.Position)
+        elseif partInduk:IsA("Model") then
+            char:MoveTo(partInduk:GetPivot().Position)
+        end
+    end
+
+    task.wait(1)
+
+    print("🔥 Mencoba fire Starter Prompt...")
+    local success, err = pcall(function()
+        fireproximityprompt(starterPrompt)
+    end)
+
+    if not success then
+        warn("Fire Starter gagal:", err)
+    else
+        print("✅ Starter Prompt dipanggil!")
+    end
+
+    -- Pulihkan properti setelah aktivasi
+    task.wait(1)
+    pcall(function()
+        starterPrompt.RequiresLineOfSight = oldLOS
+        starterPrompt.MaxActivationDistance = oldDistance
+    end)
 else
-    warn("❌ ProximityPrompt tidak ditemukan di Etc.Job.Truck.Starter")
+    warn("❌ Starter ProximityPrompt tidak ditemukan!")
     notify("Starter Prompt tidak ditemukan!")
 end
--- Tunggu server memproses Starter sebelum lanjut
-task.wait(2)
 
+-- Jeda sebelum menuju Spawner
+task.wait(2)
 if not isAutoFarming then return end
+
 
         -- FASE 3: TWEEN KE SPAWNER
         btn.Text = "MELUNCUR KE SPAWNER..."
