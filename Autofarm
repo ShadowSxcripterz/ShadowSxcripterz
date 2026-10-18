@@ -100,6 +100,7 @@ local gui = Instance.new("ScreenGui")
 gui.Name = "SxAutoPilotGui"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
+pcall(function() gui.ScreenInsets = Enum.ScreenInsets.None end)
 pcall(function() gui.Parent = CoreGui end)
 if not gui.Parent then gui.Parent = LP:WaitForChild("PlayerGui") end
 
@@ -166,11 +167,10 @@ local function buildTruck(parent, withBeam)
     -- roda: ban + pelek + 8 jari-jari + titik penanda kuning (biar kelihatan muter)
     local wheels = {}
     for _, xs in ipairs({0.15, 0.68, 0.87}) do
-        local tire = make("Frame", {
+                local tire = make("Frame", {
             AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(xs, 0.76),
-            Size = UDim2.new(0, 0, 0.4, 0), BackgroundColor3 = Color3.fromRGB(16, 16, 20), BorderSizePixel = 0,
+            Size = UDim2.fromScale(0.4 / 1.8, 0.4), BackgroundColor3 = Color3.fromRGB(16, 16, 20), BorderSizePixel = 0,
         }, body)
-        make("UIAspectRatioConstraint", {AspectRatio = 1, DominantAxis = Enum.DominantAxis.Height}, tire)
         make("UICorner", {CornerRadius = UDim.new(1, 0)}, tire)
         local rim = make("Frame", {
             AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
@@ -1579,12 +1579,80 @@ bind(dirBtn.MouseButton1Click, function()
     dirBtn.BackgroundColor3 = isUp and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(200, 50, 50)
 end)
 
--- tombol X: hentikan semua, pulihkan truck, lalu langsung kick dari server
+-- tombol X: konfirmasi dulu, baru hentikan semua + kick dari server
+local confirmOpen = false
+local confirmOv = make("Frame", {
+    Name = "CloseConfirm", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0),
+    BackgroundTransparency = 1, BorderSizePixel = 0, Active = true, Visible = false, ZIndex = 300,
+}, gui)
+local confirmBox = make("Frame", {
+    AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+    Size = UDim2.fromOffset(280, 160), BackgroundColor3 = Color3.fromRGB(16, 16, 28),
+    BorderSizePixel = 0, ZIndex = 301,
+}, confirmOv)
+make("UICorner", {CornerRadius = UDim.new(0, 12)}, confirmBox)
+local confirmStroke = make("UIStroke", {Thickness = 2, Color = WHITE}, confirmBox)
+make("UIGradient", {
+    Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(170, 0, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 200, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(170, 0, 255)),
+    }),
+}, confirmStroke)
+local confirmScale = make("UIScale", {Scale = 0.8}, confirmBox)
+
+make("TextLabel", {
+    Size = UDim2.new(1, -24, 0, 24), Position = UDim2.new(0, 12, 0, 14),
+    BackgroundTransparency = 1, Text = "Yakin Ingin Menutupnya?", TextColor3 = WHITE,
+    Font = Enum.Font.GothamBold, TextSize = 16, ZIndex = 302,
+}, confirmBox)
+make("TextLabel", {
+    Size = UDim2.new(1, -28, 0, 56), Position = UDim2.new(0, 14, 0, 44),
+    BackgroundTransparency = 1, Text = "Script Akan Automatis Mengeluarkan Anda Dari Server!",
+    TextColor3 = Color3.fromRGB(200, 200, 225), Font = Enum.Font.GothamMedium, TextSize = 13,
+    TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 302,
+}, confirmBox)
+
+local noBtn = make("TextButton", {
+    Position = UDim2.new(0, 14, 1, -50), Size = UDim2.new(0.5, -21, 0, 36),
+    BackgroundColor3 = Color3.fromRGB(50, 50, 75), Text = "BATAL", TextColor3 = WHITE,
+    Font = Enum.Font.GothamBold, TextSize = 13, AutoButtonColor = false, ZIndex = 302,
+}, confirmBox)
+make("UICorner", {CornerRadius = UDim.new(0, 8)}, noBtn)
+local yesBtn = make("TextButton", {
+    Position = UDim2.new(0.5, 7, 1, -50), Size = UDim2.new(0.5, -21, 0, 36),
+    BackgroundColor3 = Color3.fromRGB(220, 50, 60), Text = "YA, TUTUP", TextColor3 = WHITE,
+    Font = Enum.Font.GothamBold, TextSize = 13, AutoButtonColor = false, ZIndex = 302,
+}, confirmBox)
+make("UICorner", {CornerRadius = UDim.new(0, 8)}, yesBtn)
+addPress(noBtn); addPress(yesBtn)
+
+local function showConfirm(on)
+    confirmOpen = on
+    if on then
+        confirmScale.Scale = 0.8
+        confirmOv.Visible = true
+        local target = math.clamp((screenH() - 20) / 160, 0.6, 1)
+        TweenService:Create(confirmOv, TweenInfo.new(0.2), {BackgroundTransparency = 0.45}):Play()
+        TweenService:Create(confirmScale, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = target}):Play()
+    else
+        TweenService:Create(confirmOv, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(confirmScale, TweenInfo.new(0.2), {Scale = 0.8}):Play()
+        task.delay(0.2, function()
+            if not confirmOpen then confirmOv.Visible = false end
+        end)
+    end
+end
+
 bind(closeBtn.MouseButton1Click, function()
+    if closing or confirmOpen then return end
+    showConfirm(true)
+end)
+bind(noBtn.MouseButton1Click, function() showConfirm(false) end)
+bind(yesBtn.MouseButton1Click, function()
     doCleanup()
     pcall(function() LP:Kick("Auto-Farming ditutup.") end)
 end)
-
 -- anti-AFK
 bind(LP.Idled, function()
     pcall(function()
@@ -1638,14 +1706,17 @@ local function playIntro(onDone)
     local PURPLE = Color3.fromRGB(170, 0, 255)
     local CYAN = Color3.fromRGB(0, 200, 255)
 
-    local ov = make("CanvasGroup", {
+        local ov = make("CanvasGroup", {
         Name = "Intro", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.fromScale(1, 1), BackgroundColor3 = WHITE, BorderSizePixel = 0,
+        Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0,
         ZIndex = 500, Active = true, GroupTransparency = 1,
     }, gui)
+    local bgF = make("Frame", {
+        Size = UDim2.fromScale(1, 1), BackgroundColor3 = WHITE, BorderSizePixel = 0,
+    }, ov)
     local bgGrad = make("UIGradient", {
         Color = ColorSequence.new(Color3.fromRGB(28, 10, 56), Color3.fromRGB(6, 12, 34)), Rotation = 90,
-    }, ov)
+    }, bgF)
     local ovScale = make("UIScale", {Scale = 1}, ov)
 
     -- orb cahaya melayang di latar
