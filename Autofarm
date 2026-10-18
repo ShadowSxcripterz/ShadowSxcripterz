@@ -411,26 +411,18 @@ if not char or not hum or not hrp then
     btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
     return
 end
-        -- FASE 2: TWEEN KE STARTER (FIX CHARACTER REF)
+        -- FASE 2: TWEEN KE WAYPOINT, LALU FIRE PROMPT
 btn.Text = "MELUNCUR KE STARTER..."
 
--- Tunggu Starter tersedia setelah job dipilih
-local starter
-for i = 1, 20 do
-    if not isAutoFarming then return end
+local waypointFolder = workspace:FindFirstChild("Etc")
+    and workspace.Etc:FindFirstChild("Waypoint")
 
-    local etc = workspace:FindFirstChild("Etc")
-    local job = etc and etc:FindFirstChild("Job")
-    local truckJob = job and job:FindFirstChild("Truck")
-    starter = truckJob and truckJob:FindFirstChild("Starter")
+local waypoint = waypointFolder
+    and waypointFolder:FindFirstChild("Waypoint")
 
-    if starter then break end
-    task.wait(0.5)
-end
-
-if not starter then
-    warn("Starter tidak ditemukan setelah menunggu!")
-    notify("Starter belum ditemukan!")
+if not waypoint or not waypoint:IsA("BasePart") then
+    warn("Waypoint.Waypoint tidak ditemukan!")
+    notify("Waypoint tidak ditemukan!")
 
     isAutoFarming = false
     btn.Text = "MULAI AUTO FARMING"
@@ -438,97 +430,51 @@ if not starter then
     return
 end
 
--- Ambil karakter TERBARU
-char = LP.Character or LP.CharacterAdded:Wait()
-hum = char:WaitForChild("Humanoid", 5)
-hrp = char:WaitForChild("HumanoidRootPart", 5)
+local targetPos = waypoint.Position
 
-if not char or not hum or not hrp then
-    warn("Humanoid/HRP tidak ditemukan!")
+-- Tween karakter ke Waypoint
+local char = LP.Character
+local hum = char and char:FindFirstChildOfClass("Humanoid")
 
-    isAutoFarming = false
-    btn.Text = "MULAI AUTO FARMING"
-    btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
-    return
+if hum then
+    hum.Sit = false
+    hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+    task.wait(0.3)
 end
 
--- Lepaskan kondisi duduk
-hum.Sit = false
-hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-task.wait(0.4)
-
--- Ambil posisi Starter
-local targetPos
-
-if starter:IsA("BasePart") then
-    targetPos = starter.Position
-elseif starter:IsA("Model") then
-    targetPos = starter:GetPivot().Position
-else
-    local part = starter:FindFirstChildWhichIsA("BasePart", true)
-    if part then
-        targetPos = part.Position
-    end
-end
-
-if not targetPos then
-    warn("Posisi Starter tidak ditemukan!")
-    notify("Posisi Starter tidak ditemukan!")
-    return
-end
-
-print("🚀 Mulai tween ke Starter...")
-notify("Bergerak menuju Starter...")
-
-local targetCFrame = CFrame.new(
-    targetPos + Vector3.new(0, 3, 0)
-)
-
-local cframeValue = Instance.new("CFrameValue")
-cframeValue.Value = hrp.CFrame
-
--- Selalu gerakkan karakter yang sedang aktif
-local conn = cframeValue:GetPropertyChangedSignal("Value"):Connect(function()
-    local currentChar = LP.Character
-
-    if currentChar and currentChar.Parent then
-        currentChar:PivotTo(cframeValue.Value)
-    end
+local ok, err = pcall(function()
+    tweenPlayerTo(targetPos, 3)
 end)
 
-local tween = TweenService:Create(
-    cframeValue,
-    TweenInfo.new(3, Enum.EasingStyle.Linear),
-    {Value = targetCFrame}
-)
-
-tween:Play()
-tween.Completed:Wait()
-
--- Pastikan posisi akhir tepat
-local currentChar = LP.Character
-if currentChar and currentChar.Parent then
-    currentChar:PivotTo(targetCFrame)
+if not ok then
+    warn("Tween ke Waypoint gagal: " .. tostring(err))
+    notify("Tween ke Waypoint gagal!")
+    isAutoFarming = false
+    btn.Text = "MULAI AUTO FARMING"
+    btn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+    return
 end
-
-conn:Disconnect()
-cframeValue:Destroy()
-
-print("✅ Tween ke Starter selesai!")
 
 if not isAutoFarming then return end
 
--- Cari Prompt sampai ke dalam semua turunan
-local starterPrompt =
-    starter:FindFirstChildWhichIsA("ProximityPrompt", true)
+-- Cari prompt pada Waypoint atau turunannya
+local prompt = waypoint:FindFirstChildWhichIsA(
+    "ProximityPrompt", true
+)
 
-if starterPrompt then
-    firePrompt(starterPrompt)
-    print("✅ Starter Prompt diproses!")
-else
-    warn("ProximityPrompt tidak ditemukan di Starter!")
+if not prompt then
+    prompt = waypointFolder:FindFirstChildWhichIsA(
+        "ProximityPrompt", true
+    )
 end
 
+if prompt then
+    firePrompt(prompt)
+    print("✅ Waypoint Prompt di-fire!")
+else
+    warn("ProximityPrompt tidak ditemukan di Waypoint!")
+    notify("Prompt Waypoint tidak ditemukan!")
+end
         -- FASE 3: TWEEN KE SPAWNER
         btn.Text = "MELUNCUR KE SPAWNER..."
         local spawner = workspace:FindFirstChild("Etc") and workspace.Etc:FindFirstChild("Job") and workspace.Etc.Job:FindFirstChild("Truck") and workspace.Etc.Job.Truck:FindFirstChild("Spawner") and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Visual")
