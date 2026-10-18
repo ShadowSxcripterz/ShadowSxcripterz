@@ -396,6 +396,7 @@ btn.MouseButton1Click:Connect(function()
 
         -- FASE 1: REMOTE JOB
         autoSelectJob()
+print("=== AUTOFARM WAYPOINT VERSION TEST ===")
 task.wait(2)
 if not isAutoFarming then return end
 
