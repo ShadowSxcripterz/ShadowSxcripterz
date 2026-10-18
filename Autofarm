@@ -835,9 +835,6 @@ if spPrompt then
 else
     print("❌ Spawner prompt gak muncul")
 end
-
-        
-            
 btn.MouseButton1Click:Connect(function()
     if isAutoFarming then
         -- Pas di Stop
@@ -854,88 +851,153 @@ btn.MouseButton1Click:Connect(function()
         
         local char = LP.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
         
         -- ==========================================
         -- LANGKAH 1: TEMBAK REMOTE JOB
         -- ==========================================
         autoSelectJob() 
-        task.wait(2) 
+        task.wait(2)
         
         -- ==========================================
+        -- LANGKAH 2: TWEEN KE STARTER (PERSIS SCRIPT LO)
         -- ==========================================
--- LANGKAH 2: TWEEN KE STARTER
--- ==========================================
-btn.Text = "MELUNCUR KE STARTER..."
-local starter = workspace:FindFirstChild("Etc") 
-    and workspace.Etc:FindFirstChild("Job") 
-    and workspace.Etc.Job:FindFirstChild("Truck") 
-    and workspace.Etc.Job.Truck:FindFirstChild("Starter")
+        btn.Text = "MELUNCUR KE STARTER..."
+        
+        -- 1. Paksa berdiri
+        if hum then
+            hum.Sit = false
+            hum.Jump = true
+            task.wait(0.2)
+        end
 
-local starterPrompt = starter and starter:FindFirstChild("Prompt")
-print("char:", char, "| starter:", starter, "| prompt:", starterPrompt)
-print("tweenPlayerTo:", tweenPlayerTo)
+        -- 2. Cari Papan Starter
+        local starter = workspace:FindFirstChild("Etc") 
+            and workspace.Etc:FindFirstChild("Job") 
+            and workspace.Etc.Job:FindFirstChild("Truck") 
+            and workspace.Etc.Job.Truck:FindFirstChild("Starter")
+            
+        if starter and hrp and char then
+            -- Ambil posisi
+            local targetPos = nil
+            if starter:IsA("BasePart") then 
+                targetPos = starter.Position
+            elseif starter:IsA("Model") then 
+                targetPos = starter:GetPivot().Position
+            else
+                local p = starter:FindFirstChildWhichIsA("BasePart", true)
+                if p then targetPos = p.Position end
+            end
 
-if char and starter and starterPrompt and starterPrompt:IsA("ProximityPrompt") then
-    local pos = nil
-    if starter:IsA("BasePart") then 
-        pos = starter.Position
-    elseif starter:IsA("Model") then 
-        pos = starter:GetPivot().Position
-    else
-        local p = starter:FindFirstChildWhichIsA("BasePart", true)
-        if p then pos = p.Position end
-    end
+            if targetPos then
+                -- PROSES TWEEN
+                local startCFrame = hrp.CFrame
+                local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
+                local cframeValue = Instance.new("CFrameValue")
+                cframeValue.Value = startCFrame
 
-    if pos then
-        tweenPlayerTo(pos, 3) -- Panggil Tween dengan posisi yang bener
+                local conn = cframeValue.Changed:Connect(function(v)
+                    if char and char.Parent then
+                        char:PivotTo(v)
+                    end
+                end)
 
-        -- Hack Prompt & Fire
-        starterPrompt.RequiresLineOfSight = false
-        starterPrompt.MaxActivationDistance = 100
-        pcall(function() fireproximityprompt(starterPrompt) end)
-        print("✅ Starter Prompt Di-fire!")
+                local tween = TweenService:Create(cframeValue, TweenInfo.new(3, Enum.EasingStyle.Linear), {Value = targetCFrame})
+                tween:Play()
+                tween.Completed:Wait()
 
-        task.wait(1)
-        starterPrompt.RequiresLineOfSight = true
-        starterPrompt.MaxActivationDistance = 10
-    end
-else
-    print("❌ Starter atau Prompt gak ketemu!")
-end
+                cframeValue:Destroy()
+                conn:Disconnect()
+                print("✅ Sampai di Starter!")
+                
+                -- 🔥 FIRE PROMPT SETELAH SAMPAI
+                local starterPrompt = starter:FindFirstChild("Prompt")
+                if starterPrompt and starterPrompt:IsA("ProximityPrompt") then
+                    starterPrompt.RequiresLineOfSight = false
+                    starterPrompt.MaxActivationDistance = 100
+                    pcall(function() fireproximityprompt(starterPrompt) end)
+                    print("✅ Starter Prompt Di-fire!")
+                    task.wait(1)
+                    starterPrompt.RequiresLineOfSight = true
+                    starterPrompt.MaxActivationDistance = 10
+                end
+            else
+                print("❌ Posisi Starter gak ketemu!")
+            end
+        else
+            print("❌ Starter gak ketemu bro!")
+        end
+        
+        task.wait(2) -- Jeda sebelum ke Spawner
         
         -- ==========================================
-        -- LANGKAH 3: TWEEN KE SPAWNER
+        -- LANGKAH 3: TWEEN KE SPAWNER (PERSIS SCRIPT LO)
         -- ==========================================
         btn.Text = "MELUNCUR KE SPAWNER..."
-        local spawnerPrompt = workspace:FindFirstChild("Etc") 
+        
+        if hum then
+            hum.Sit = false
+            hum.Jump = true
+            task.wait(0.2)
+        end
+
+        local spawner = workspace:FindFirstChild("Etc") 
             and workspace.Etc:FindFirstChild("Job") 
             and workspace.Etc.Job:FindFirstChild("Truck") 
             and workspace.Etc.Job.Truck:FindFirstChild("Spawner")
-            and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Part")
-            and workspace.Etc.Job.Truck.Spawner.Part:FindFirstChild("Prompt")
+            and workspace.Etc.Job.Truck.Spawner:FindFirstChild("Visual")
             
-        if char and spawnerPrompt and spawnerPrompt:IsA("ProximityPrompt") then
-            local partInduk = spawnerPrompt.Parent
-            if partInduk and partInduk:IsA("BasePart") then
-                -- 🔥 TWEEN PLAYER (Durasi 3 detik)
-                tweenPlayerTo(partInduk.Position, 3)
+        if spawner and hrp and char then
+            -- Ambil posisi
+            local targetPos = nil
+            if spawner:IsA("BasePart") then 
+                targetPos = spawner.Position
+            elseif spawner:IsA("Model") then 
+                targetPos = spawner:GetPivot().Position
+            else
+                local p = spawner:FindFirstChildWhichIsA("BasePart", true)
+                if p then targetPos = p.Position end
+            end
+
+            if targetPos then
+                -- PROSES TWEEN
+                local startCFrame = hrp.CFrame
+                local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
+                local cframeValue = Instance.new("CFrameValue")
+                cframeValue.Value = startCFrame
+
+                local conn = cframeValue.Changed:Connect(function(v)
+                    if char and char.Parent then
+                        char:PivotTo(v)
+                    end
+                end)
+
+                local tween = TweenService:Create(cframeValue, TweenInfo.new(3, Enum.EasingStyle.Linear), {Value = targetCFrame})
+                tween:Play()
+                tween.Completed:Wait()
+
+                cframeValue:Destroy()
+                conn:Disconnect()
+                print("✅ Sampai di Spawner!")
                 
-                -- Hack Prompt
-                spawnerPrompt.RequiresLineOfSight = false
-                spawnerPrompt.MaxActivationDistance = 100
-                
-                -- Fire Prompt
-                pcall(function() fireproximityprompt(spawnerPrompt) end)
-                print("✅ Spawner Prompt Di-fire!")
-                
-                -- Balikin setting
-                task.wait(1)
-                spawnerPrompt.RequiresLineOfSight = true
-                spawnerPrompt.MaxActivationDistance = 10
+                -- 🔥 FIRE PROMPT SPAWNER
+                local spawnerPrompt = workspace.Etc.Job.Truck.Spawner.Part and workspace.Etc.Job.Truck.Spawner.Part:FindFirstChild("Prompt")
+                if spawnerPrompt and spawnerPrompt:IsA("ProximityPrompt") then
+                    spawnerPrompt.RequiresLineOfSight = false
+                    spawnerPrompt.MaxActivationDistance = 100
+                    pcall(function() fireproximityprompt(spawnerPrompt) end)
+                    print("✅ Spawner Prompt Di-fire!")
+                    task.wait(1)
+                    spawnerPrompt.RequiresLineOfSight = true
+                    spawnerPrompt.MaxActivationDistance = 10
+                end
+            else
+                print("❌ Posisi Spawner gak ketemu!")
             end
         else
-            print("❌ Spawner Prompt gak ketemu / bukan ProximityPrompt!")
+            print("❌ Spawner gak ketemu bro!")
         end
+
         task.wait(3) -- Jeda buat nunggu mobil muncul
         
         -- ==========================================
@@ -961,7 +1023,7 @@ end
                 print("❌ Mobil gak ketemu di workspace.Vehicles!") 
             end
         end
-        task.wait(2)
+        task.wait(2) -- Jeda biar sistem nyatet lo udah duduk
         
         -- ==========================================
         -- LANGKAH 5: JALANIN AUTO FARM LOOP
@@ -971,4 +1033,7 @@ end
         task.spawn(autoFarmLoop)
     end
 end)
+        
+            
+            
 notify("🛡️ Anti-AFK aktif")
